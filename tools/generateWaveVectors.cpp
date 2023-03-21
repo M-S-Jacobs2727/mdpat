@@ -1,4 +1,4 @@
-#include "scatteringVectors.hpp"
+#include "generateWaveVevtors.hpp"
 
 using std::vector;
 
@@ -138,8 +138,8 @@ vector<vector<int>> generateCandidates(int gridMax, int dim) {
         pairs.begin(),
         pairs.end(),
         [](auto & a, auto & b) {
-            return a.second < b.second
-        }    
+            return a.second < b.second;
+        }
     );
 
     for (i = 0; i < nCandidates; ++i)
@@ -250,7 +250,7 @@ vector<vector<int>> includePermutations(vector<vector<int>> selectedQs) {
             old_end,
             final_vectors.end(),
             [](auto & a, auto & b){
-                for (int i = 0; i < *a.size(); ++i) {
+                for (int i = 0; i < a.size(); ++i) {
                     if (a[i] < b[i]) return true;
                     else if (a[i] > b[i]) return false;
                 }
