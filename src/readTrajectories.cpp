@@ -1,4 +1,4 @@
-#include "trajectories.hpp"
+#include "readTrajectories.hpp"
 
 using std::vector;
 using std::string;
@@ -146,14 +146,18 @@ string getFilename(string directory, int step) {
 
 template<typename T>
 void readAtomsSection(std::ifstream &dumpfile, int nAtoms, vector<int> columnFlag, Dump<T> & dump) {
-    dump.atoms.resize(dump.atoms.size() + nAtoms*columnFlag.size());
+    auto nCols = std::count(columnFlag.begin(), columnFlag.end(), 1);
+    dump.atoms.reserve(dump.atoms.size() + nAtoms*nCols);
     string tmp;
+    T tmpdata;
     for (int i = 0; i < totalAtoms; ++i) {
         dumpfile >> id;
         
         for (auto c : columnFlag) {
-            if (c) dumpfile >> dump.atoms[i];
-            else dumpfile >> tmp;
+            if (c) {
+                dumpfile >> tmpdata;
+                dump.atoms.push_back(tmpdata);
+            } else dumpfile >> tmp;
         }
     }
 }

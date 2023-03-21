@@ -7,8 +7,6 @@
 #include <sstream>
 #include <vector>
 
-#include "readInput.hpp"
-
 template<typename T>
 struct Dump {
     long int nAtoms;
