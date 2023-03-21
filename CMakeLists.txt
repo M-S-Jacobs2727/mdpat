@@ -19,4 +19,4 @@ add_executable(mdpat
     ${MDPAT_SRC_DIR}/selectFromArray.cpp
 )
 
-add_executable()
+add_executable(generateWaveVectors ${MDPAT_TOOLS_DIR}/generateWaveVectors.cpp)
