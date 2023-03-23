@@ -147,17 +147,16 @@ string getFilename(string directory, int step) {
 template<typename T>
 void readAtomsSection(std::ifstream &dumpfile, int nAtoms, vector<int> columnFlag, Dump<T> & dump) {
     auto nCols = std::count(columnFlag.begin(), columnFlag.end(), 1);
-    dump.atoms.reserve(dump.atoms.size() + nAtoms*nCols);
+    dump.atoms.resize(dump.atoms.size() + nAtoms*nCols);
     string tmp;
     T tmpdata;
-    for (int i = 0; i < totalAtoms; ++i) {
+    int id;
+    for (int i = 0; i < nAtoms; ++i) {
         dumpfile >> id;
         
         for (auto c : columnFlag) {
-            if (c) {
-                dumpfile >> tmpdata;
-                dump.atoms.push_back(tmpdata);
-            } else dumpfile >> tmp;
+            if (c) dumpfile >> dump.atoms[id];
+            else dumpfile >> tmp;
         }
     }
 }
@@ -213,9 +212,9 @@ Dump<T> readDumpFiles(
         columnFlag[c] = 1;
 
     string filename;        
-    for (auto step = firstStep, int i = 0; i < nSteps; step += dumpStep, ++i) {
+    for (int step = firstStep, i = 0; i < nSteps; step += dumpStep, ++i) {
         filename = getFilename(directory, step);
-        auto err = readDumpText<T>(filepath.str(), atomFlag, columnFlag, dump);
+        auto err = readDumpText<T>(filename, nAtoms, columnFlag, dump);
         if (err) break;
     }
     return dump;

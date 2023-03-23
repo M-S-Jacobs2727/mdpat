@@ -1,11 +1,11 @@
-#include "selection.hpp"
+#include "selectFromArray.hpp"
 
 using std::vector;
 
 
 // The atomType should be in the typeCol column (0-indexed, default=1).
 template<typename T, typename T2>
-T2 selectAtomsByType(vector<T> & atoms, T2 nSteps, T2 nAtoms, int nCols, const vector<int> & selectedTypes, int typeCol = 1) {
+T2 selectAtomsByType(vector<T> & atoms, T2 nSteps, T2 nAtoms, int nCols, const vector<int> & selectedTypes, int typeCol) {
     vector<int> atomList;
     atomList.reserve(nAtoms);
 
@@ -18,7 +18,7 @@ T2 selectAtomsByType(vector<T> & atoms, T2 nSteps, T2 nAtoms, int nCols, const v
             tLast != std::find(
                 tFirst,
                 tLast,
-                (int)atoms[i*nCols + typeCol],
+                (int)atoms[i*nCols + typeCol]
             )
         ) {
             atomList.push_back(i);

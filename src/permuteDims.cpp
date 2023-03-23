@@ -8,9 +8,9 @@ int getLinearIndices(
 ) {
     int index = 0;
     int tmp;
-    for (int i = 0; i < nDims; ++i) {
+    for (int i = 0; i < N; ++i) {
         tmp = indices[newDims[i]];
-        for (int j = i+1; j < nDims; ++j) {
+        for (int j = i+1; j < N; ++j) {
             tmp *= dimLengths[newDims[j]];
         }
         index += tmp;
@@ -63,7 +63,7 @@ std::vector<T> permuteDims(
     }
     
     tmpVec.swap(vec);
-    vector<T>().swap(tmpVec);
+    std::vector<T>().swap(tmpVec);
 
     return 0;
 }
