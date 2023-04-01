@@ -177,8 +177,10 @@ int readDumpText(const string & filepath, int nAtoms, vector<int> columnFlag, Du
 
     dumpfile >> word;
     while (dumpfile.good()) {
-        if (word != "ITEM:")
+        if (word != "ITEM:") {
+            dumpfile >> word;
             continue;
+        }
 
         dumpfile >> word;
         if (word == "TIMESTEP") {
