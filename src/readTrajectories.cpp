@@ -219,3 +219,6 @@ Dump<T> readDumpFiles(
     }
     return dump;
 }
+
+template int readDumpText<float>(const string & filepath, int nAtoms, vector<int> columnFlag, Dump<float> & dump);
+template int readDumpText<double>(const string & filepath, int nAtoms, vector<int> columnFlag, Dump<double> & dump);
