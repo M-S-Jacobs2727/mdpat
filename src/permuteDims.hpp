@@ -17,14 +17,15 @@ uint64_t getLinearIndex(const std::vector<uint64_t> & indices,
 
 template<typename T>
 int permuteDims(std::vector<T> & vec,
-                std::vector<uint64_t> const & dimLengths,
-                std::vector<uint64_t> const & newDims
+                const std::vector<uint64_t> & dimLengths,
+                const std::vector<uint64_t> & newDims
 );
 
-// template<typename T, std::size_t N>
-// int permuteDimsParallel(boost::multi_array<T, N> arr,
-//                         const std::array<std::size_t, N> & newDims,
-//                         std::size_t me,
-//                         std::size_t nprocs,
-//                         MPI_Comm comm);
+template<typename T>
+int permuteDimsParallel(std::vector<T> vec,
+                        std::vector<uint64_t> & dimLengths,
+                        const std::vector<uint64_t> & newDims,
+                        const int me,
+                        const int nprocs,
+                        const MPI_Comm comm);
 }
