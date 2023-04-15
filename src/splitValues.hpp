@@ -1,6 +1,7 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
 #include <utility>
 
-template<typename T>
-std::pair<T, T> splitValues(T totalNumValues, int me, int nProcs);
+std::pair<uint64_t, uint64_t> splitValues(uint64_t totalNumValues, int me, int nProcs);
