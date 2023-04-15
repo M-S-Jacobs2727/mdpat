@@ -31,11 +31,11 @@ int permuteDims(vector<T> & vec,
     int i, j;
     int prod = 1;
     int isSame = 1;
-    auto N = dimLengths.size();
+    auto const N = dimLengths.size();
     
     if (newDims.size() != N) {
         std::cerr << "ERROR: size of arguments `dimLengths` and `newDims` should be equal.\n";
-        return -1
+        return -1;
     }
     
     for (i = 0; i < N; ++i)
@@ -55,14 +55,14 @@ int permuteDims(vector<T> & vec,
     if (isSame)
         return -3;
 
-    std::array<int, N> indices = {};
+    std::vector<uint64_t> indices(N, 0);
     std::vector<T> tmpVec;
     tmpVec.resize(vec.size());
 
-    size_t index;
+    uint64_t index;
 
     for (i = 0; i < prod; ++i) {
-        index = getLinearIndex<N>(indices, dimLengths, newDims);
+        index = getLinearIndex(indices, dimLengths, newDims);
         tmpVec[index] = vec[i];
         ++indices[N-1];
         for (j = N-1; j > 0; --j) {

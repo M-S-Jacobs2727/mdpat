@@ -8,7 +8,7 @@ BOOST_AUTO_TEST_CASE(single_proc_small_2d) {
     std::vector<uint64_t> newDims = {0, 1};
 
     auto ret = MDPAT::permuteDims<int>(vec, dimLengths, newDims);
-    BOOST_TEST( ret == -1 );
+    BOOST_TEST(ret == -3);
 
     newDims = {1, 0};
     ret = MDPAT::permuteDims<int>(vec, dimLengths, newDims);
