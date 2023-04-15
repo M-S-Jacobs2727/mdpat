@@ -5,7 +5,8 @@ set(INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../src")
 #message("Include directory: ${INCLUDE_DIR}")
 
 add_executable(mdpat-test
-    testReadTrajectories.cpp
+    # testReadTrajectories.cpp
+    testPermuteDims.cpp
 )
 target_include_directories(mdpat-test
   PRIVATE
