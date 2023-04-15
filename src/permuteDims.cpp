@@ -1,19 +1,20 @@
 #include "permuteDims.hpp"
 
 using std::size_t;
+using std::vector;
 
 namespace MDPAT
 {
-template<int N>
-size_t getLinearIndex(const std::array<int, N> & indices, 
-                      const std::array<int, N> & dimLengths, 
-                      const std::array<int, N> & newDims)
+uint64_t getLinearIndex(const vector<uint64_t> & indices, 
+                        const vector<uint64_t> & dimLengths, 
+                        const vector<uint64_t> & newDims)
 {
-    size_t index = 0;
-    size_t tmp;
-    for (size_t i = 0; i < N; ++i) {
+    auto N = indices.size();
+    uint64_t index = 0;
+    uint64_t tmp;
+    for (int i = 0; i < N; ++i) {
         tmp = indices[newDims[i]];
-        for (size_t j = i+1; j < N; ++j) {
+        for (int j = i+1; j < N; ++j) {
             tmp *= dimLengths[newDims[j]];
         }
         index += tmp;
@@ -22,19 +23,26 @@ size_t getLinearIndex(const std::array<int, N> & indices,
 }
 
 // TODO: return std::array of new dimLengths
-template<typename T, int N>
-int permuteDims(std::vector<T> & vec,
-                std::array<int, N> const & dimLengths,
-                std::array<int, N> const & newDims)
+template<typename T>
+int permuteDims(vector<T> & vec,
+                const vector<uint64_t> & dimLengths,
+                const vector<uint64_t> & newDims)
 {
     int i, j;
     int prod = 1;
     int isSame = 1;
+    auto N = dimLengths.size();
+    
+    if (newDims.size() != N) {
+        std::cerr << "ERROR: size of arguments `dimLengths` and `newDims` should be equal.\n";
+        return -1
+    }
+    
     for (i = 0; i < N; ++i)
         prod *= dimLengths[i];
     if (prod != vec.size()) {
         std::cerr << "ERROR: size of vector should equal" <<
-            " accumulated product of `dimLengths`." << std::endl;
+            " accumulated product of `dimLengths`.\n";
         return -2;
     }
 
@@ -45,7 +53,7 @@ int permuteDims(std::vector<T> & vec,
         }
     }
     if (isSame)
-        return -1;
+        return -3;
 
     std::array<int, N> indices = {};
     std::vector<T> tmpVec;
@@ -71,15 +79,6 @@ int permuteDims(std::vector<T> & vec,
     return 0;
 }
 
-// template
-// int permuteDims<int, 2>(std::vector<int> & vec,
-//                         std::array<int, 2> const & dimLengths,
-//                         std::array<int, 2> const & newDims);
-
-template
-size_t getLinearIndex<2>(const std::array<int, 2> & indices, 
-                         const std::array<int, 2> & dimLengths, 
-                         const std::array<int, 2> & newDims);
 
 /*  Takes a vector on each proc, sorted in row-major order according to
  *  `dimLengths`, with each proc having a contiguous subset in the first
@@ -240,4 +239,18 @@ size_t getLinearIndex<2>(const std::array<int, 2> & indices,
 //         MPI_Scatterv();
 //     }
 // }
+
+template int permuteDims(vector<float> & vec,
+                         const vector<uint64_t> & dimLengths,
+                         const vector<uint64_t> & newDims);
+template int permuteDims(vector<double> & vec,
+                         const vector<uint64_t> & dimLengths,
+                         const vector<uint64_t> & newDims);
+template int permuteDims(vector<uint64_t> & vec,
+                         const vector<uint64_t> & dimLengths,
+                         const vector<uint64_t> & newDims);
+template int permuteDims(vector<int> & vec,
+                         const vector<uint64_t> & dimLengths,
+                         const vector<uint64_t> & newDims);
+
 }
