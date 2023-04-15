@@ -2,6 +2,8 @@
 
 using std::string;
 
+namespace MDPAT
+{
 InputValues readInput(std::istream& stream) {
     InputValues input;
     string line;
@@ -64,4 +66,5 @@ InputValues readInput(std::istream& stream) {
     if (input.initStep < 0 || input.endStep <= 0 || input.dumpStep <= 0 || input.directory == "" || input.nAtoms <= 0 || input.totalCols <= 0)
         std::cerr << "Invalid or missing settings in input file!" << std::endl;
     return input;
+}
 }

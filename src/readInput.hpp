@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+namespace MDPAT
+{
 // TODO: Make into a class? Make a method to verify that values are initialized? 
 // Or don't initialize values?
 struct InputValues {
@@ -26,7 +28,7 @@ struct InputValues {
 };
 
 InputValues readInput(std::istream& stream);
-
+}
 /*=============================================================================
 # `InputValues readInput(std::istream& stream)`
 Reads input from `stream` consisting of keyword-value pairs (or more than one

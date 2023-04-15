@@ -1,5 +1,7 @@
 #include "initNode.hpp"
 
+namespace MDPAT
+{
 void initNode(int argc, char **argv, int & me, int & nprocs) {
     // MPI variables
     MPI_Init(&argc, &argv);
@@ -27,4 +29,5 @@ void initNode(int argc, char **argv, int & me, int & nprocs) {
     int gpunum = (me / local_size) * ngpus + local_rank % ngpus;
     acc_set_device_num(gpunum, acc_device_nvidia);
     std::cout << "# me: " << me << ", gpunum: " << gpunum << "\n";
+}
 }

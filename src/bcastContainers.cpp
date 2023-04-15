@@ -1,5 +1,7 @@
 #include "bcastContainers.hpp"
 
+namespace MDPAT
+{
 void bcast(std::string st, int source, MPI_Comm comm) {
     int strlen = st.length();
     MPI_Bcast(&strlen, 1, MPI_INT, source, comm);
@@ -30,4 +32,5 @@ void bcast(std::vector<std::vector<T>> vec, MPI_Datatype datatype, int source, M
         vec[i].resize(sizes[i]);
         MPI_Bcast(&vec[i][0], sizes[i], datatype, source, comm);
     }
+}
 }

@@ -4,6 +4,8 @@ using std::vector;
 using std::string;
 using std::cerr;
 
+namespace MDPAT
+{
 Frame<double> readDumpBinary(string filepath) {
     int i, j, k, m, n;
     int nchunk, triclinic, oldsize;
@@ -256,3 +258,4 @@ template int readDumpTextFrame(std::istream & dumpFile, vector<int>columnFlag, i
 template int readDumpTextFile(std::istream & dumpFile, vector<int> columnFlag, vector<Frame<float>*> & dumpFrames);
 template int readDumpTextFile(std::istream & dumpFile, vector<int> columnFlag, vector<Frame<double>*> & dumpFrames);
 
+}

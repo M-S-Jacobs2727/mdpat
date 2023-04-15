@@ -2,7 +2,8 @@
 
 using std::vector;
 
-
+namespace MDPAT
+{
 // The atomType should be in the typeCol column (0-indexed, default=1).
 template<typename T, typename T2>
 T2 selectAtomsByType(vector<T> & atoms, T2 nSteps, T2 nAtoms, int nCols, const vector<int> & selectedTypes, int typeCol) {
@@ -49,4 +50,5 @@ int selectColumns(vector<T> & atoms, T2 nSteps, T2 nAtoms, int nCols, vector<int
             outVec.push_back(*(it+c));
 
     return 0;
+}
 }

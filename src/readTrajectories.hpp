@@ -7,6 +7,8 @@
 #include <sstream>
 #include <vector>
 
+namespace MDPAT
+{
 template<typename T>
 struct Frame {
     long timestep = 0;
@@ -34,3 +36,4 @@ Frame<T> readDumpFiles(
     int firstStep, int nSteps, int dumpStep, int nAtoms, int totalCols,
     std::vector<int> columns, std::string directory
 );
+}
