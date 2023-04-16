@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 #include <mpi.h>

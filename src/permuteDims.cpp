@@ -91,15 +91,15 @@ int permuteDims(vector<T> & vec,
  *  of `me`.
  */
 template<typename T>
-int permuteDimsParallel(vector<T> vec,
-                        vector<uint64_t> & dimLengths,
+int permuteDimsParallel(vector<T> & vec,
+                        vector<uint64_t> & oldDimLengths,
                         const vector<uint64_t> & newDims,
                         const int me,
                         const int nprocs,
                         const MPI_Comm comm)
 {
-    // TODO: return std::array of new dimLengths
-    // TODO: add checks for dimLengths to be the same on all procs (except first element)
+    // TODO: return std::array of new oldDimLengths
+    // TODO: add checks for oldDimLengths to be the same on all procs (except first element)
     // TODO: make sure that the first dim is different (i.e., newDims[0] != 0)
 
     int i;
@@ -107,16 +107,22 @@ int permuteDimsParallel(vector<T> vec,
     // Gatherv all vectors to proc 0
     const auto N = newDims.size();
 
-    uint64_t mySize = vec.size();
-    uint64_t totalSize = mySize;
+    int mySize = vec.size();
+    int totalSize = mySize;
+
+    vector<uint64_t> totalDimLengths(N, 0);
+    for (i = 0; i < N; ++i)
+        totalDimLengths[i] = oldDimLengths[i];
+
+    MPI_Allreduce(MPI_IN_PLACE, totalDimLengths.data(), 1, MPI_UNSIGNED_LONG, MPI_SUM, comm);
     
-    auto recvcounts = std::make_unique<uint64_t[]>(nprocs);
-    auto displs = std::make_unique<uint64_t[]>(nprocs);
-    recvcounts[me] = mySize;
+    auto recvcounts = std::make_unique<int[]>(me ? 1 : nprocs);
+    auto displs = std::make_unique<int[]>(me ? 1 : nprocs);
+    recvcounts[0] = mySize;
 
     if (me == 0)
     {
-        MPI_Reduce(recvcounts, MPI_IN_PLACE, nprocs, MPI_UNSIGNED_LONG, MPI_SUM, 0, comm);
+        MPI_Gather(MPI_IN_PLACE, 1, MPI_INT, (void*)recvcounts.get(), 1, MPI_INT, 0, comm);
         for (i = 1; i < nprocs; ++i)
         {
             displs[i] = totalSize;
@@ -125,55 +131,50 @@ int permuteDimsParallel(vector<T> vec,
     }
     else
     {
-        MPI_Reduce(recvcounts, recvcounts, nprocs, MPI_UNSIGNED_LONG, MPI_SUM, 0, comm);
+        MPI_Gather((void*)recvcounts.get(), 1, MPI_INT, (void*)recvcounts.get(), 1, MPI_INT, 0, comm);
     }
 
     if (me == 0)
     {
         vec.resize(totalSize);
-        MPI_Gatherv(vec.data(), mySize, MPI_FLOAT, MPI_IN_PLACE, recvcounts, displs, MPI_FLOAT, 0, comm);
+        MPI_Gatherv(MPI_IN_PLACE, mySize, MPI_FLOAT, vec.data(), recvcounts.get(), displs.get(), MPI_FLOAT, 0, comm);
     }
     else
     {
-        MPI_Gatherv(vec.data(), mySize, MPI_FLOAT, vec.data(), recvcounts, displs, MPI_FLOAT, 0, comm);
+        MPI_Gatherv(vec.data(), mySize, MPI_FLOAT, vec.data(), recvcounts.get(), displs.get(), MPI_FLOAT, 0, comm);
     }
 
-    // permute m_Dims on proc 0
-    if (me == 0) {
-        dimLengths[0] = totalSize;
-        for (i = 1; i < N; ++i)
-            dimLengths[0] /= dimLengths[i];
-        permuteDims(vec, dimLengths, newDims);
-    }
+    // permute on proc 0
+    if (me == 0)
+        permuteDims(vec, totalDimLengths, newDims);
 
     MPI_Barrier(comm);
 
-    uint64_t newDimLength = dimLengths[newDims[0]];
-    auto [firstIndex, numValues] = splitValues(newDimLength, me, nprocs);
-    auto sendcounts = std::make_unique<int[]>(nprocs);
-    uint64_t prodOtherDims = dimLengths[newDims[1]];
+    vector<uint64_t> newDimLengths(N, 0);
+    for (i = 0; i < N; ++i)
+        newDimLengths[i] = totalDimLengths[newDims[i]];
+    uint64_t prodOtherDims = newDimLengths[1];
     for (i = 2; i < N; ++i)
-        prodOtherDims *= dimLengths[newDims[i]];
-    numValues *= prodOtherDims;
+        prodOtherDims *= newDimLengths[i];
+
+    auto sendcounts = std::make_unique<int[]>(nprocs);
+    for (i = 0; i < nprocs; ++i)
+    {
+        auto [firstIndex, numValues] = splitValues(newDimLengths[0], i, nprocs);
+        sendcounts[i] = numValues * prodOtherDims;
+        displs[i] = firstIndex * prodOtherDims;
+    }
 
     // Scatterv new vectors
     if (me == 0)
     {
-        displs[0] = 0;
-        sendcounts[0] = numValues;
-        for (i = 1; i < nprocs; ++i) 
-        {
-            auto [firstIndexTmp, numValuesTmp] = splitValues(newDimLength, i, nprocs);
-            sendcounts[i] = numValuesTmp * prodOtherDims;
-            displs[i] = displs[i-1] + sendcounts[i-1];
-        }
-        MPI_Scatterv(vec.data(), sendcounts, displs, MPI_FLOAT, MPI_IN_PLACE, numValues, MPI_FLOAT, 0, comm);
-        vec.resize(numValues);
+        MPI_Scatterv(vec.data(), sendcounts.get(), displs.get(), MPI_FLOAT, MPI_IN_PLACE, sendcounts[me], MPI_FLOAT, 0, comm);
+        vec.resize(sendcounts[me]);
     }
     else
     {
-        vec.resize(numValues);
-        MPI_Scatterv(vec.data(), sendcounts, displs, MPI_FLOAT, vec.data(), numValues, MPI_FLOAT, 0, comm);
+        vec.resize(sendcounts[me]);
+        MPI_Scatterv(vec.data(), sendcounts.get(), displs.get(), MPI_FLOAT, vec.data(), sendcounts[me], MPI_FLOAT, 0, comm);
     }
 
     return 0;
