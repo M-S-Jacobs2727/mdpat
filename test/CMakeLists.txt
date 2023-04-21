@@ -4,17 +4,26 @@ add_definitions(-DBOOST_TEST_DYN_LINK)
 set(INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../src")
 #message("Include directory: ${INCLUDE_DIR}")
 
-add_executable(mdpat-test
-    # testReadTrajectories.cpp
-    testPermuteDims.cpp
-)
-target_include_directories(mdpat-test
-  PRIVATE
-    ${INCLUDE_DIR}
-    ${Boost_INCLUDE_DIRS}
-)
-target_link_libraries(mdpat-test
-  PRIVATE
-    mdpatlib
-    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
-)
+
+file(GLOB TEST_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
+
+foreach(testSrc ${TEST_SRCS})
+    get_filename_component(testName ${testSrc} NAME_WE)
+    add_executable(${testName}
+        ${testSrc}
+    )
+    target_include_directories(${testName}
+      PRIVATE
+        ${INCLUDE_DIR}
+        ${Boost_INCLUDE_DIRS}
+    )
+    target_link_libraries(${testName}
+      PRIVATE
+        mdpatlib
+        ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
+    )
+    add_test(NAME ${testName}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMAND mpirun -n 2 ${CMAKE_CURRENT_BINARY_DIR}/${testName} )
+  
+endforeach(testSrc)
