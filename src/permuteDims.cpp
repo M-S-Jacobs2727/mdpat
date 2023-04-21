@@ -92,26 +92,52 @@ int permuteDims(vector<T> & vec,
  */
 template<typename T>
 int permuteDimsParallel(vector<T> & vec,
-                        vector<uint64_t> & oldDimLengths,
+                        const vector<uint64_t> & oldDimLengths,
                         const vector<uint64_t> & newDims,
                         const int me,
                         const int nprocs,
                         const MPI_Comm comm)
 {
-    // TODO: return std::array of new oldDimLengths
+    // TODO: return std::array of newDimLengths
     // TODO: add checks for oldDimLengths to be the same on all procs (except first element)
     // TODO: make sure that the first dim is different (i.e., newDims[0] != 0)
 
-    int i;
+    if (oldDimLengths.size() <= 1 || newDims.size() <= 1)
+        return -1;
+    
+    if (oldDimLengths.size() != newDims.size())
+        return -2;
+
+    int i, j;
+    const auto numDims = newDims.size();
+    
+    bool isSame = true;
+    for (i = 0; i < numDims; ++i)
+    {
+        if (newDims[i] >= numDims)
+            return -3;
+        for (j = 0; j < i; ++j)
+            if (newDims[i] == newDims[j])
+                return -4;
+        if (isSame && newDims != i)
+            isSame = false;
+    }
+    if (isSame)
+        return -5;
+
+    // If we're not permuting the split dimension, then just permute alone without communication
+    if (newDims[0] == 0)
+    {
+        permuteDims(vec, oldDimLengths, newDims);
+        return 0;
+    }
 
     // Gatherv all vectors to proc 0
-    const auto N = newDims.size();
-
     int mySize = vec.size();
     int totalSize = mySize;
 
-    vector<uint64_t> totalDimLengths(N, 0);
-    for (i = 0; i < N; ++i)
+    vector<uint64_t> totalDimLengths(numDims, 0);
+    for (i = 0; i < numDims; ++i)
         totalDimLengths[i] = oldDimLengths[i];
 
     MPI_Allreduce(MPI_IN_PLACE, totalDimLengths.data(), 1, MPI_UNSIGNED_LONG, MPI_SUM, comm);
@@ -150,11 +176,11 @@ int permuteDimsParallel(vector<T> & vec,
 
     MPI_Barrier(comm);
 
-    vector<uint64_t> newDimLengths(N, 0);
-    for (i = 0; i < N; ++i)
+    vector<uint64_t> newDimLengths(numDims, 0);
+    for (i = 0; i < numDims; ++i)
         newDimLengths[i] = totalDimLengths[newDims[i]];
     uint64_t prodOtherDims = newDimLengths[1];
-    for (i = 2; i < N; ++i)
+    for (i = 2; i < numDims; ++i)
         prodOtherDims *= newDimLengths[i];
 
     auto sendcounts = std::make_unique<int[]>(nprocs);
@@ -164,6 +190,7 @@ int permuteDimsParallel(vector<T> & vec,
         sendcounts[i] = numValues * prodOtherDims;
         displs[i] = firstIndex * prodOtherDims;
     }
+    newDimLengths[0] = sendcounts[me] / prodOtherDims;
 
     // Scatterv new vectors
     if (me == 0)
@@ -192,5 +219,29 @@ template int permuteDims(vector<uint64_t> & vec,
 template int permuteDims(vector<int> & vec,
                          const vector<uint64_t> & dimLengths,
                          const vector<uint64_t> & newDims);
+template int permuteDimsParallel(vector<float> & vec,
+                                 const vector<uint64_t> & oldDimLengths,
+                                 const vector<uint64_t> & newDims,
+                                 const int me,
+                                 const int nprocs,
+                                 const MPI_Comm comm);
+template int permuteDimsParallel(vector<double> & vec,
+                                 const vector<uint64_t> & oldDimLengths,
+                                 const vector<uint64_t> & newDims,
+                                 const int me,
+                                 const int nprocs,
+                                 const MPI_Comm comm);
+template int permuteDimsParallel(vector<uint64_t> & vec,
+                                 const vector<uint64_t> & oldDimLengths,
+                                 const vector<uint64_t> & newDims,
+                                 const int me,
+                                 const int nprocs,
+                                 const MPI_Comm comm);
+template int permuteDimsParallel(vector<int> & vec,
+                                 const vector<uint64_t> & oldDimLengths,
+                                 const vector<uint64_t> & newDims,
+                                 const int me,
+                                 const int nprocs,
+                                 const MPI_Comm comm);
 
 }
