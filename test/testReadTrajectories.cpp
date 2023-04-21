@@ -1,20 +1,20 @@
-#define BOOST_TEST_MODULE testReadTrajectories
+#define BOOST_TEST_MODULE header-only multiunit testReadTrajectories
 #include <boost/test/unit_test.hpp> 
 #include "readTrajectories.hpp"
 
 BOOST_AUTO_TEST_CASE(single_text_file) {
-    const std::string filename = "test/testFiles/dump.0";
+    const std::string filename = "testFiles/dump.0";
     std::ifstream dumpFile(filename);
     BOOST_TEST(dumpFile.good());
     
     std::vector<int> columnFlag;
     columnFlag.resize(4, 1);
     
-    std::vector<Frame<float>*> frames;
+    std::vector<MDPAT::Frame<float>*> frames;
     frames.resize(1);
-    frames[0] = new Frame<float>;
+    frames[0] = new MDPAT::Frame<float>;
     
-    auto err_code = readDumpTextFile<float>(dumpFile, columnFlag, frames);
+    auto err_code = MDPAT::readDumpTextFile<float>(dumpFile, columnFlag, frames);
 
     BOOST_TEST(err_code == 0);
     
