@@ -96,7 +96,7 @@ int permuteDims(vector<T> & vec,
  */
 template<typename T>
 int permuteDimsParallel(vector<T> & vec,
-                        const vector<uint64_t> & oldDimLengths,
+                        vector<uint64_t> & dimLengths,
                         const vector<uint64_t> & newDims,
                         const int me,
                         const int nprocs,
@@ -108,10 +108,10 @@ int permuteDimsParallel(vector<T> & vec,
     //     executes `permuteDims`, then the data is redistributed. This can be improved with
     //     a clever algorithm, but that's a heavier task for later. This works.
 
-    if (oldDimLengths.size() <= 1 || newDims.size() <= 1)
+    if (dimLengths.size() <= 1 || newDims.size() <= 1)
         return -1;
     
-    if (oldDimLengths.size() != newDims.size())
+    if (dimLengths.size() != newDims.size())
         return -2;
 
     int i, j;
@@ -134,7 +134,7 @@ int permuteDimsParallel(vector<T> & vec,
     // If we're not permuting the split dimension, then just permute alone without communication
     if (newDims[0] == 0)
     {
-        permuteDims(vec, oldDimLengths, newDims);
+        permuteDims(vec, dimLengths, newDims);
         return 0;
     }
 
@@ -144,7 +144,7 @@ int permuteDimsParallel(vector<T> & vec,
 
     vector<uint64_t> totalDimLengths(numDims, 0);
     for (i = 0; i < numDims; ++i)
-        totalDimLengths[i] = oldDimLengths[i];
+        totalDimLengths[i] = dimLengths[i];
 
     MPI_Allreduce(MPI_IN_PLACE, totalDimLengths.data(), 1, MPI_UNSIGNED_LONG, MPI_SUM, comm);
     
@@ -182,21 +182,21 @@ int permuteDimsParallel(vector<T> & vec,
 
     MPI_Barrier(comm);
 
-    vector<uint64_t> newDimLengths(numDims, 0);
+    // vector<uint64_t> dimLengths(numDims, 0);
     for (i = 0; i < numDims; ++i)
-        newDimLengths[i] = totalDimLengths[newDims[i]];
-    uint64_t prodOtherDims = newDimLengths[1];
+        dimLengths[i] = totalDimLengths[newDims[i]];
+    uint64_t prodOtherDims = dimLengths[1];
     for (i = 2; i < numDims; ++i)
-        prodOtherDims *= newDimLengths[i];
+        prodOtherDims *= dimLengths[i];
 
     auto sendcounts = std::make_unique<int[]>(nprocs);
     for (i = 0; i < nprocs; ++i)
     {
-        auto [firstIndex, numValues] = splitValues(newDimLengths[0], i, nprocs);
+        auto [firstIndex, numValues] = splitValues(dimLengths[0], i, nprocs);
         sendcounts[i] = numValues * prodOtherDims;
         displs[i] = firstIndex * prodOtherDims;
     }
-    newDimLengths[0] = sendcounts[me] / prodOtherDims;
+    dimLengths[0] = sendcounts[me] / prodOtherDims;
 
     // Scatterv new vectors
     if (me == 0)
@@ -226,25 +226,25 @@ template int permuteDims(vector<int> & vec,
                          const vector<uint64_t> & dimLengths,
                          const vector<uint64_t> & newDims);
 template int permuteDimsParallel(vector<float> & vec,
-                                 const vector<uint64_t> & oldDimLengths,
+                                 vector<uint64_t> & dimLengths,
                                  const vector<uint64_t> & newDims,
                                  const int me,
                                  const int nprocs,
                                  const MPI_Comm comm);
 template int permuteDimsParallel(vector<double> & vec,
-                                 const vector<uint64_t> & oldDimLengths,
+                                 vector<uint64_t> & dimLengths,
                                  const vector<uint64_t> & newDims,
                                  const int me,
                                  const int nprocs,
                                  const MPI_Comm comm);
 template int permuteDimsParallel(vector<uint64_t> & vec,
-                                 const vector<uint64_t> & oldDimLengths,
+                                 vector<uint64_t> & dimLengths,
                                  const vector<uint64_t> & newDims,
                                  const int me,
                                  const int nprocs,
                                  const MPI_Comm comm);
 template int permuteDimsParallel(vector<int> & vec,
-                                 const vector<uint64_t> & oldDimLengths,
+                                 vector<uint64_t> & dimLengths,
                                  const vector<uint64_t> & newDims,
                                  const int me,
                                  const int nprocs,

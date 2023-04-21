@@ -23,7 +23,7 @@ int permuteDims(std::vector<T> & vec,
 
 template<typename T>
 int permuteDimsParallel(std::vector<T> & vec,
-                        const std::vector<uint64_t> & oldDimLengths,
+                        std::vector<uint64_t> & dimLengths,
                         const std::vector<uint64_t> & newDims,
                         const int me,
                         const int nprocs,
