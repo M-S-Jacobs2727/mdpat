@@ -78,17 +78,21 @@ int permuteDims(vector<T> & vec,
     return 0;
 }
 
-/*  Takes a vector on each proc, sorted in row-major order according to
- *  `dimLengths`, with each proc having a contiguous subset in the first
- *  dimension, and reorganizes the vectors according to the first dimension
- *  of `newDims`. 
- * 
- *  For example, if `dimLengths = {N/P, M, L}` where `P` is the number of
- *  processes `nprocs`, and `newDims = {1, 2, 0}, then the resulting vector
- *  will have size (M/P) * L * N, organized first by M, then L, then N.
- * 
- *  Assumes that the vectors should be in order according to the values
- *  of `me`.
+/*  
+ * Takes a 1-D vector on each proc, representative of an N-D array sorted in
+ * row-major order according to `dimLengths`, and permutes those dimensions
+ * according to `newDims` (a permutation of {0, 1, ..., N-1}).
+ *
+ * The vector on each proc is assumed to be of shape D1_p x D2 x ... x DN.
+ * D1_p is not assumed to be identical on each proc, but D2-DN are.
+ *
+ * For example, if `dimLengths = {N/P, M, L}` where `P` is the number of
+ * processes `nprocs`, and `newDims = {1, 2, 0}, then the resulting vector
+ * will have size (M/P) * L * N, organized first by M, then L, then N.
+ *
+ * Assumes that the vectors are order according to the values of `me`
+ * (i.e., proc 0 should hold the first N/P values, then proc 1
+ * holds the next N/P values, etc.)
  */
 template<typename T>
 int permuteDimsParallel(vector<T> & vec,
@@ -98,9 +102,11 @@ int permuteDimsParallel(vector<T> & vec,
                         const int nprocs,
                         const MPI_Comm comm)
 {
-    // TODO: return std::array of newDimLengths
+    // TODO: return newDimLengths
     // TODO: add checks for oldDimLengths to be the same on all procs (except first element)
-    // TODO: make sure that the first dim is different (i.e., newDims[0] != 0)
+    // TODO: make more efficient. Currently, this naively gathers all data to proc 0, proc 0 
+    //     executes `permuteDims`, then the data is redistributed. This can be improved with
+    //     a clever algorithm, but that's a heavier task for later. This works.
 
     if (oldDimLengths.size() <= 1 || newDims.size() <= 1)
         return -1;
