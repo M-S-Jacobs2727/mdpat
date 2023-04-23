@@ -2,6 +2,11 @@
 
 namespace MDPAT
 {
+
+/*
+ * Returns the first index and number of values for process me when split evenly
+ * among nprocs processes.
+ */
 std::pair<uint64_t, uint64_t> splitValues(uint64_t totalNumValues, int me, int nProcs) {
     uint64_t q = totalNumValues / nProcs;
     uint64_t r = totalNumValues % nProcs;
