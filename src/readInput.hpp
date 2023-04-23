@@ -1,9 +1,14 @@
 #pragma once
 
+#include <algorithm>
+#include <cstdint>
+#include <filesystem>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include "msd.hpp"
 
 namespace MDPAT
 {
@@ -28,6 +33,24 @@ struct InputValues {
 };
 
 InputValues readInput(std::istream& stream);
+
+
+class InputReader
+{
+public:
+    InputReader();
+    ~InputReader();
+    void parse(std::istream);
+private:
+    std::filesystem::path directory;
+    StepRange stepRange;
+    double timestep = 0.0;
+    uint32_t dim = 3U;
+    bool directorySet = false;
+    bool stepRangeSet = false;
+};
+
+
 }
 /*=============================================================================
 # `InputValues readInput(std::istream& stream)`
