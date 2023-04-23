@@ -1,6 +1,8 @@
 #pragma once
 
 #include <algorithm>
+#include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -9,21 +11,34 @@
 
 namespace MDPAT
 {
+struct StepRange
+{
+    uint64_t initStep = 0UL;
+    uint64_t endStep = 0UL;
+    uint64_t dumpStep = 0UL;
+    StepRange(uint64_t iStep, uint64_t eStep, uint64_t dStep) :
+        initStep(iStep), endStep(eStep), dumpStep(dStep) {}
+};
+
 template<typename T>
 struct Frame {
-    long timestep = 0;
-    long nAtoms = 0;
-    int nCols = 0;
+    uint64_t timestep = 0;
+    uint64_t nAtoms = 0;
+    uint32_t nCols = 0;
     T box[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    std::vector<std::string> columnLabels;
     std::vector<T> atoms;
 };
 
-std::string getFilename(std::string directory, int step);
+std::string getFilepath(std::string directory, int step);
 
 Frame<double> readDumpBinary(std::string filepath);
 
 template<typename T>
-int readAtomsSection(std::istream & dumpFile, std::vector<int> columnFlag, int nCols, long nAtoms, std::vector<T> & atoms);
+int readAtomsSection(std::istream & dumpFile, std::vector<int> columnFlag, uint32_t nValidCols, uint64_t nAtoms, std::vector<T> & atoms);
+
+template<typename T>
+int readAtomsSectionByType(std::istream & dumpFile, std::vector<int> columnFlag, uint32_t nValidCols, std::vector<T> & atoms, std::vector<uint32_t> typeflag, uint64_t nValidAtoms);
 
 template<typename T>
 int readDumpTextFrame(std::istream & dumpFile, std::vector<int>columnFlag, int nCols, Frame<T> * dump);
@@ -32,8 +47,15 @@ template<typename T>
 int readDumpTextFile(std::istream & dumpFile, std::vector<int> columnFlag, std::vector<Frame<T>*> & dumpFrames);
 
 template<typename T>
-Frame<T> readDumpFiles(
+std::vector<Frame<T>*> readDumpFiles(
     int firstStep, int nSteps, int dumpStep, int nAtoms, int totalCols,
     std::vector<int> columns, std::string directory
 );
+
+std::vector<double> getTrajectories(bool wrapped,
+                                    StepRange stepRange,
+                                    std::filesystem::path directory,
+                                    uint32_t atomType=0,
+                                    uint32_t dim=3);
+
 }
