@@ -1,0 +1,7 @@
+directory .
+stepRange 0-250:50
+timestep 0.005
+
+msd 1 0-100 msd.txt
+
+rdf 1 1 maxDistance 10 outfile rdf.txt
