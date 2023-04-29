@@ -130,12 +130,19 @@ void msd(fs::path outfile,
         }
     }
 
-    std::ofstream outstream(outfile);
-    for (uint64_t gap = minGap; gap <= maxGap; ++gap)
+    if (me)
+        MPI_Reduce(msd.data(), msd.data(), msd.size(), MPI_DOUBLE, MPI_SUM, 0, comm);
+    else
+        MPI_Reduce(MPI_IN_PLACE, msd.data(), msd.size(), MPI_DOUBLE, MPI_SUM, 0, comm);
+
+    if (me == 0)
     {
-        outstream << gap * myStepRange.dumpStep * timestep << ' ' << msd[gap - minGap] << '\n';
+        std::ofstream outstream(outfile);
+        for (uint64_t gap = minGap; gap <= maxGap; ++gap)
+            outstream << gap * myStepRange.dumpStep * timestep << ' ' 
+                      << msd[gap - minGap] / nAtoms / (nSteps - gap) << '\n';
+        outstream.close();
     }
-    outstream.close();
 }
 
 }
