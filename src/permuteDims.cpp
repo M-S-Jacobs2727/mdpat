@@ -125,7 +125,7 @@ int permuteDimsParallel(vector<T> & vec,
         for (j = 0; j < i; ++j)
             if (newDims[i] == newDims[j])
                 return -4;
-        if (isSame && newDims != i)
+        if (isSame && newDims[i] != i)
             isSame = false;
     }
     if (isSame)
