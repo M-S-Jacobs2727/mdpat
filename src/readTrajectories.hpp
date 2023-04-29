@@ -34,25 +34,20 @@ std::string getFilepath(std::string directory, int step);
 
 Frame<double> readDumpBinary(std::string filepath);
 
-template<typename T>
-int readAtomsSection(std::istream & dumpFile, std::vector<int> columnFlag, uint32_t nValidCols, uint64_t nAtoms, std::vector<T> & atoms);
+int readAtomsSection(std::istream & dumpFile, std::vector<int> columnFlag, uint32_t nValidCols, uint64_t nAtoms, std::vector<float> & atoms);
 
-template<typename T>
-int readAtomsSectionByType(std::istream & dumpFile, std::vector<int> columnFlag, uint32_t nValidCols, std::vector<T> & atoms, std::vector<uint32_t> typeflag, uint64_t nValidAtoms);
+int readAtomsSectionByType(std::istream & dumpFile, std::vector<int> columnFlag, uint32_t nValidCols, std::vector<float> & atoms, std::vector<uint32_t> typeflag, uint64_t nValidAtoms);
 
-template<typename T>
-int readDumpTextFrame(std::istream & dumpFile, std::vector<int>columnFlag, int nCols, Frame<T> * dump);
+int readDumpTextFrame(std::istream & dumpFile, std::vector<int>columnFlag, int nCols, Frame<float> * dump);
 
-template<typename T>
-int readDumpTextFile(std::istream & dumpFile, std::vector<int> columnFlag, std::vector<Frame<T>*> & dumpFrames);
+int readDumpTextFile(std::istream & dumpFile, std::vector<int> columnFlag, std::vector<Frame<float>*> & dumpFrames);
 
-template<typename T>
-std::vector<Frame<T>*> readDumpFiles(
+std::vector<Frame<float>*> readDumpFiles(
     int firstStep, int nSteps, int dumpStep, int nAtoms, int totalCols,
     std::vector<int> columns, std::string directory
 );
 
-std::vector<double> getTrajectories(bool wrapped,
+std::vector<float> getTrajectories(bool wrapped,
                                     StepRange stepRange,
                                     std::filesystem::path directory,
                                     uint32_t atomType=0,

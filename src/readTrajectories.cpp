@@ -154,8 +154,7 @@ string getFilename(uint64_t step)
     return filename.str();
 }
 
-template<typename T>
-int readAtomsSection(std::istream & dumpFile, vector<int> columnFlag, uint32_t nValidCols, uint64_t nAtoms, vector<T> & atoms) {
+int readAtomsSection(std::istream & dumpFile, vector<int> columnFlag, uint32_t nValidCols, uint64_t nAtoms, vector<float> & atoms) {
     auto oldSize = atoms.size();
     atoms.resize(oldSize + nAtoms*nValidCols);
 
@@ -177,8 +176,7 @@ int readAtomsSection(std::istream & dumpFile, vector<int> columnFlag, uint32_t n
     return 0;
 }
 
-template<typename T>
-int readAtomsSectionByType(std::istream & dumpFile, vector<int> columnFlag, uint32_t nValidCols, vector<T> & atoms, vector<uint32_t> typeflag, uint64_t nValidAtoms) {
+int readAtomsSectionByType(std::istream & dumpFile, vector<int> columnFlag, uint32_t nValidCols, vector<float> & atoms, vector<uint32_t> typeflag, uint64_t nValidAtoms) {
     auto oldSize = atoms.size();
     atoms.resize(oldSize + nValidAtoms*nValidCols);
 
@@ -208,12 +206,11 @@ int readAtomsSectionByType(std::istream & dumpFile, vector<int> columnFlag, uint
     return 0;
 }
 
-template<typename T>
-Frame<T> readDumpTextHeader(std::istream & dumpFile) {
+Frame<float> readDumpTextHeader(std::istream & dumpFile) {
     string word;
     int i;
 
-    Frame<T> frame;
+    Frame<float> frame;
     
     while (true) {
         dumpFile >> word;
@@ -251,8 +248,7 @@ Frame<T> readDumpTextHeader(std::istream & dumpFile) {
     return frame;
 }
 
-template<typename T>
-int readDumpTextFrame(std::istream & dumpFile, vector<int>columnFlag, int nCols, Frame<T> * frame) {
+int readDumpTextFrame(std::istream & dumpFile, vector<int>columnFlag, int nCols, Frame<float> * frame) {
     string word;
     int i;
     
@@ -298,13 +294,12 @@ int readDumpTextFrame(std::istream & dumpFile, vector<int>columnFlag, int nCols,
     return 0;
 }
 
-template<typename T>
-int readDumpTextFile(std::istream & dumpFile, vector<int> columnFlag, vector<Frame<T>*> & dumpFrames) {
+int readDumpTextFile(std::istream & dumpFile, vector<int> columnFlag, vector<Frame<float>*> & dumpFrames) {
     int nCols = std::count(columnFlag.begin(), columnFlag.end(), 1);
 
-    for (Frame<T> * frame : dumpFrames) {
+    for (Frame<float> * frame : dumpFrames) {
         cerr << frame << '\n';
-        auto err = readDumpTextHeader(dumpFile, columnFlag, nCols, frame);
+        auto err = readDumpTextFrame(dumpFile, columnFlag, nCols, frame);
         if (err) {
             cerr << "Error reading frame!\n";
             return err;
@@ -315,12 +310,11 @@ int readDumpTextFile(std::istream & dumpFile, vector<int> columnFlag, vector<Fra
     return 0;
 }
 
-template<typename T>
-vector<Frame<T>*> readDumpFiles(
+vector<Frame<float>*> readDumpFiles(
     int firstStep, int nSteps, int dumpStep, int nAtoms, int totalCols,
     vector<int> columns, string directory
 ) {
-    vector<Frame<T>*> dumpFrames;
+    vector<Frame<float>*> dumpFrames;
     dumpFrames.resize(nSteps);
 
     vector<int> columnFlag(totalCols, 0);
@@ -333,7 +327,7 @@ vector<Frame<T>*> readDumpFiles(
         std::ifstream dumpFile(filename);
         if (dumpFile.bad()) break;
 
-        auto err = readDumpTextFile<T>(dumpFile, columnFlag, dumpFrames);
+        auto err = readDumpTextFile(dumpFile, columnFlag, dumpFrames);
 
         if (err) break;
     }
@@ -374,7 +368,7 @@ void skipDumpTextHeader(std::istream & dumpFile)
  * 6. The atom types do not change
  * It ignores any changes in box size or atom type. The types are defined by the first frame.
  */
-vector<double> getTrajectories(bool wrapped,
+vector<float> getTrajectories(bool wrapped,
                                StepRange stepRange,
                                std::filesystem::path directory,
                                uint32_t atomType,
@@ -393,7 +387,7 @@ vector<double> getTrajectories(bool wrapped,
     string filename;
     filename = getFilename(stepRange.initStep);
     std::ifstream dumpstream((directory / filename).string());
-    auto frame = readDumpTextHeader<double>(dumpstream);
+    auto frame = readDumpTextHeader(dumpstream);
 
     // Get column of atom types
     auto it = std::find(frame.columnLabels.begin(), frame.columnLabels.end(), "type");
@@ -408,7 +402,7 @@ vector<double> getTrajectories(bool wrapped,
     vector<int> columnFlags(frame.nCols, 0);
 
     std::string label = wrapped ? "x" : "xu";
-    auto it = std::find(frame.columnLabels.begin(), frame.columnLabels.end(), label);
+    it = std::find(frame.columnLabels.begin(), frame.columnLabels.end(), label);
     if (it == frame.columnLabels.end())
     {
         std::cerr << "Couldn't find unwrapped coordinates!\n";
@@ -450,7 +444,7 @@ vector<double> getTrajectories(bool wrapped,
     }
 
     // Finish reading first frame, including atom types
-    vector<double> atoms;
+    vector<float> atoms;
     atoms.reserve(frame.nAtoms*(dim+1)*nSteps);
 
     columnFlags[typeCol] = 1;
