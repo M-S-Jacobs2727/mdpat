@@ -1,5 +1,6 @@
-#define BOOST_TEST_MODULE header-only multiunit testPermuteDims
-#include <boost/test/unit_test.hpp> 
+#define BOOST_TEST_MODULE header-only testPermuteDims
+#include <boost/test/included/unit_test.hpp>
+#include <mpi.h>
 #include "../src/permuteDims.cpp"
 #include <cstdint>
 
@@ -14,11 +15,14 @@ struct MPISetup
         MPI_Comm_rank(MPI_COMM_WORLD, &ME);
         MPI_Comm_size(MPI_COMM_WORLD, &NPROCS);
     }
-    ~MPISetup(){MPI_Finalize();}
+    ~MPISetup() { MPI_Finalize(); }
 };
 
+BOOST_TEST_GLOBAL_FIXTURE(MPISetup);
 
-BOOST_AUTO_TEST_CASE(single_proc_small_2d) {
+
+BOOST_AUTO_TEST_CASE(single_proc_small_2d)
+{
     std::vector<int> vec(10, 0);
     std::vector<uint64_t> dimLengths = {2, 5};
     std::vector<uint64_t> newDims = {0, 1};
@@ -46,7 +50,8 @@ BOOST_AUTO_TEST_CASE(single_proc_small_2d) {
     
 }
 
-BOOST_AUTO_TEST_CASE(single_proc_small_3d) {
+BOOST_AUTO_TEST_CASE(single_proc_small_3d)
+{
     std::vector<int> vec(8, 0);
     std::vector<uint64_t> dimLengths = {2, 2, 2};
     std::vector<uint64_t> newDims = {0, 1, 2};
@@ -81,7 +86,8 @@ BOOST_AUTO_TEST_CASE(single_proc_small_3d) {
                 BOOST_TEST(vec[j*4+i*2+k] = ++val);
 }
 
-BOOST_AUTO_TEST_CASE(two_proc_2d) {
+BOOST_AUTO_TEST_CASE(two_proc_2d)
+{
     std::vector<int> vec(8, 0);
     std::vector<unsigned long> dimLengths = {2, 4};
     std::vector<unsigned long> newDims = {1, 0};
