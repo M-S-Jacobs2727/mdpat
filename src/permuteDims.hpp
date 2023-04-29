@@ -7,6 +7,7 @@
 
 #include <mpi.h>
 
+#include "mpiType.hpp"
 #include "splitValues.hpp"
 
 namespace MDPAT

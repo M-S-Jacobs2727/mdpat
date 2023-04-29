@@ -1,6 +1,7 @@
 #include "permuteDims.hpp"
 
 using std::vector;
+using std::size_t;
 
 namespace MDPAT
 {
@@ -10,9 +11,8 @@ uint64_t getLinearIndex(const vector<uint64_t> & indices,
 {
     auto N = indices.size();
     uint64_t index = 0;
-    uint64_t tmp;
     for (int i = 0; i < N; ++i) {
-        tmp = indices[newDims[i]];
+        uint64_t tmp = indices[newDims[i]];
         for (int j = i+1; j < N; ++j) {
             tmp *= dimLengths[newDims[j]];
         }
@@ -102,8 +102,6 @@ int permuteDimsParallel(vector<T> & vec,
                         const int nprocs,
                         const MPI_Comm comm)
 {
-    // TODO: return newDimLengths
-    // TODO: add checks for oldDimLengths to be the same on all procs (except first element)
     // TODO: make more efficient. Currently, this naively gathers all data to proc 0, proc 0 
     //     executes `permuteDims`, then the data is redistributed. This can be improved with
     //     a clever algorithm, but that's a heavier task for later. This works.
@@ -117,6 +115,7 @@ int permuteDimsParallel(vector<T> & vec,
     int i, j;
     const auto numDims = newDims.size();
     
+    // Check that the newDims are different from the old ones
     bool isSame = true;
     for (i = 0; i < numDims; ++i)
     {
@@ -131,6 +130,17 @@ int permuteDimsParallel(vector<T> & vec,
     if (isSame)
         return -5;
 
+    // Check that the dimLengths are the same along all but the first dimension
+    auto procDimLengths = std::make_unique<uint64_t[]>(nprocs * numDims);
+    MPI_Allgather(dimLengths.data(), numDims, MPI_UNSIGNED_LONG, procDimLengths.get(), numDims, MPI_UNSIGNED_LONG, comm);
+    isSame = true;
+    for (i = 1; i < nprocs; ++i)
+        for (j = 1; j < numDims; ++j)
+            if (isSame && procDimLengths[i*numDims+j] != procDimLengths[j])
+                isSame = false;
+    if (!isSame)
+        return -6;
+
     // If we're not permuting the split dimension, then just permute alone without communication
     if (newDims[0] == 0)
     {
@@ -139,8 +149,8 @@ int permuteDimsParallel(vector<T> & vec,
     }
 
     // Gatherv all vectors to proc 0
-    int mySize = vec.size();
-    int totalSize = mySize;
+    auto mySize = vec.size();
+    // int totalSize = mySize;
 
     vector<uint64_t> totalDimLengths(numDims, 0);
     for (i = 0; i < numDims; ++i)
@@ -148,32 +158,34 @@ int permuteDimsParallel(vector<T> & vec,
 
     MPI_Allreduce(MPI_IN_PLACE, totalDimLengths.data(), 1, MPI_UNSIGNED_LONG, MPI_SUM, comm);
     
-    auto recvcounts = std::make_unique<int[]>(me ? 1 : nprocs);
-    auto displs = std::make_unique<int[]>(me ? 1 : nprocs);
+    auto recvcounts = std::make_unique<int[]>(nprocs);
+    auto displs = std::make_unique<int[]>(nprocs);
     recvcounts[0] = mySize;
+
+    uint64_t prodOtherDims = dimLengths[1];
+    for (i = 2; i < numDims; ++i)
+        prodOtherDims *= dimLengths[i];
+    
+    MPI_Datatype dtype = mpi_get_type<T>();
 
     if (me == 0)
     {
-        MPI_Gather(MPI_IN_PLACE, 1, MPI_INT, (void*)recvcounts.get(), 1, MPI_INT, 0, comm);
+        recvcounts[0] = mySize;
+        displs[0] = 0;
+        auto totalSize = mySize;
         for (i = 1; i < nprocs; ++i)
         {
+            recvcounts[i] = procDimLengths[i*numDims] * prodOtherDims;
             displs[i] = totalSize;
             totalSize += recvcounts[i];
         }
-    }
-    else
-    {
-        MPI_Gather((void*)recvcounts.get(), 1, MPI_INT, (void*)recvcounts.get(), 1, MPI_INT, 0, comm);
-    }
 
-    if (me == 0)
-    {
         vec.resize(totalSize);
-        MPI_Gatherv(MPI_IN_PLACE, mySize, MPI_FLOAT, vec.data(), recvcounts.get(), displs.get(), MPI_FLOAT, 0, comm);
+        MPI_Gatherv(MPI_IN_PLACE, mySize, dtype, vec.data(), recvcounts.get(), displs.get(), dtype, 0, comm);
     }
     else
     {
-        MPI_Gatherv(vec.data(), mySize, MPI_FLOAT, vec.data(), recvcounts.get(), displs.get(), MPI_FLOAT, 0, comm);
+        MPI_Gatherv(vec.data(), mySize, dtype, vec.data(), recvcounts.get(), displs.get(), dtype, 0, comm);
     }
 
     // permute on proc 0
@@ -182,12 +194,8 @@ int permuteDimsParallel(vector<T> & vec,
 
     MPI_Barrier(comm);
 
-    // vector<uint64_t> dimLengths(numDims, 0);
     for (i = 0; i < numDims; ++i)
         dimLengths[i] = totalDimLengths[newDims[i]];
-    uint64_t prodOtherDims = dimLengths[1];
-    for (i = 2; i < numDims; ++i)
-        prodOtherDims *= dimLengths[i];
 
     auto sendcounts = std::make_unique<int[]>(nprocs);
     for (i = 0; i < nprocs; ++i)
@@ -201,13 +209,13 @@ int permuteDimsParallel(vector<T> & vec,
     // Scatterv new vectors
     if (me == 0)
     {
-        MPI_Scatterv(vec.data(), sendcounts.get(), displs.get(), MPI_FLOAT, MPI_IN_PLACE, sendcounts[me], MPI_FLOAT, 0, comm);
+        MPI_Scatterv(vec.data(), sendcounts.get(), displs.get(), dtype, MPI_IN_PLACE, sendcounts[me], dtype, 0, comm);
         vec.resize(sendcounts[me]);
     }
     else
     {
         vec.resize(sendcounts[me]);
-        MPI_Scatterv(vec.data(), sendcounts.get(), displs.get(), MPI_FLOAT, vec.data(), sendcounts[me], MPI_FLOAT, 0, comm);
+        MPI_Scatterv(vec.data(), sendcounts.get(), displs.get(), dtype, vec.data(), sendcounts[me], dtype, 0, comm);
     }
 
     return 0;
