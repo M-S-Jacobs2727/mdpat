@@ -2,12 +2,17 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
 #include <iostream>
+#include <regex>
 #include <sstream>
 #include <string>
 #include <vector>
 
+#include <mpi.h>
+
+#include "readTrajectories.hpp"
 #include "msd.hpp"
 
 namespace MDPAT
@@ -34,20 +39,30 @@ struct InputValues {
 
 InputValues readInput(std::istream& stream);
 
+struct Commands
+{
+    std::vector<std::string> lines;
+};
 
 class InputReader
 {
 public:
-    InputReader();
+    // InputReader();
     ~InputReader();
-    void parse(std::istream);
+    void parse(); // Should only be run by proc 0
+    void execute();
 private:
+    std::istream input;
     std::filesystem::path directory;
     StepRange stepRange;
     double timestep = 0.0;
     uint32_t dim = 3U;
     bool directorySet = false;
     bool stepRangeSet = false;
+    std::string line;
+    std::vector<std::string> lines;
+    int me, nprocs;
+    MPI_Comm & comm;
 };
 
 

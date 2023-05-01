@@ -4,7 +4,7 @@
 namespace MDPAT
 {
 template<typename T>
-msd_results<T> msd(std::vector<int32_t> typelist,
+msd_results<T> meanSquaredDisplacement(std::vector<int32_t> & typelist,
                    std::vector<T> unwrapped_trajectories,
                    const uint64_t first_frame,
                    const uint64_t num_frames,
@@ -78,7 +78,7 @@ msd_results<T> msd(std::vector<int32_t> typelist,
     return results;
 }
 
-void msd(fs::path outfile,
+void meanSquaredDisplacement(fs::path outfile,
          fs::path directory,
          StepRange stepRange,
          double timestep,
@@ -109,7 +109,7 @@ void msd(fs::path outfile,
     maxGap /= myStepRange.dumpStep;
     uint64_t numGaps = maxGap - minGap + 1;
 
-    double tmp, dx;
+    double rsq, dx;
     std::vector<double> msd(numGaps, 0.0);
 
     for (uint64_t atom = 0; atom < myNumAtoms; ++atom)
@@ -118,14 +118,84 @@ void msd(fs::path outfile,
         {
             for (uint64_t gap = minGap; gap <= maxGap; ++gap)
             {
-                tmp = 0;
+                rsq = 0;
                 for (uint64_t frame = 0; frame + gap < nSteps; ++frame)
                 {
                     dx = atoms[atom*dim*nSteps + col*nSteps + frame + gap] - 
                          atoms[atom*dim*nSteps + col*nSteps + frame];
-                    tmp += dx*dx;
+                    rsq += dx*dx;
                 }
-                msd[gap - minGap] += tmp;
+                msd[gap - minGap] += rsq;
+            }    
+        }
+    }
+
+    if (me)
+        MPI_Reduce(msd.data(), msd.data(), msd.size(), MPI_DOUBLE, MPI_SUM, 0, comm);
+    else
+        MPI_Reduce(MPI_IN_PLACE, msd.data(), msd.size(), MPI_DOUBLE, MPI_SUM, 0, comm);
+
+    if (me == 0)
+    {
+        std::ofstream outstream(outfile);
+        for (uint64_t gap = minGap; gap <= maxGap; ++gap)
+            outstream << gap * myStepRange.dumpStep * timestep << ' ' 
+                      << msd[gap - minGap] / nAtoms / (nSteps - gap) << '\n';
+        outstream.close();
+    }
+}
+
+void meanSquaredDisplacementOMP(fs::path outfile,
+             fs::path directory,
+             StepRange stepRange,
+             double timestep,
+             uint32_t atomType,
+             uint64_t minGap, // in number of steps
+             uint64_t maxGap, // in number of steps
+             uint32_t dim,    // number of spatial dimensions
+             int me,
+             int nprocs,
+             MPI_Comm comm)
+{
+    uint64_t nSteps = (stepRange.endStep - stepRange.initStep) / stepRange.dumpStep + 1;
+    auto [myFirstStep, myNumSteps] = splitValues(nSteps, me, nprocs);
+
+    StepRange myStepRange(myFirstStep,
+                          myFirstStep + stepRange.dumpStep*(myNumSteps-1),
+                          stepRange.dumpStep);
+
+    auto atoms = getTrajectories(false, myStepRange, directory, atomType, dim);
+    auto nAtoms = atoms.size() / dim / myNumSteps;
+
+    std::vector<uint64_t> dimLengths = {myNumSteps, nAtoms, dim};
+    std::vector<uint64_t> newDims = {1, 2, 0};
+    permuteDimsParallel(atoms, dimLengths, newDims, me, nprocs, comm);
+    auto myNumAtoms = atoms.size() / dim / nSteps;
+
+    minGap /= myStepRange.dumpStep;
+    maxGap /= myStepRange.dumpStep;
+    uint64_t numGaps = maxGap - minGap + 1;
+
+    double rsq, dx;
+    std::vector<double> msd(numGaps, 0.0);
+
+    #pragma omp distribute collapse(3)
+    for (uint64_t atom = 0; atom < myNumAtoms; ++atom)
+    {
+        for (uint64_t col = 0; col < dim; ++col)
+        {
+            for (uint64_t gap = minGap; gap <= maxGap; ++gap)
+            {
+                rsq = 0;
+                #pragma omp simd reduction(+:tmp)
+                for (uint64_t frame = 0; frame + gap < nSteps; ++frame)
+                {
+                    dx = atoms[atom*dim*nSteps + col*nSteps + frame + gap] - 
+                         atoms[atom*dim*nSteps + col*nSteps + frame];
+                    rsq += dx*dx;
+                }
+                #pragma omp atomic
+                msd[gap - minGap] += rsq;
             }    
         }
     }

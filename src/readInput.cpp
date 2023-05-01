@@ -69,128 +69,133 @@ InputValues readInput(std::istream& stream) {
     return input;
 }
 
-InputReader::InputReader()
+void InputReader::parse()
 {
-}
-
-void InputReader::parse(std::istream input)
-{
-    string line;
-    std::istringstream linestream;
-    while (input)
+    if (me == 0)
     {
-        std::getline(input, line);
-        if (line.size() == 0)
-            continue;
-        linestream.str(line);
-        linestream >> line;
-        if (linestream.eof())
-            continue;
-        
-        if (line == "timestep")
+        std::istringstream linestream;
+        while (input)
         {
-            linestream >> timestep;
-            if (timestep <= 0)
-            {
-                std::cerr << "Invalid value of timestep: " << timestep << '\n';
-                throw timestep;
-            }
-        }
-        else if (line == "dim")
-        {
-            linestream >> dim;
-            if (dim == 0)
-            {
-                std::cerr << "dim=0 is not allowed.\n";
-                throw -3;
-            }
-        }
-        else if (line == "directory")
-        {
-            linestream >> directory;
-            if (!fs::exists(directory))
-            {
-                std::cerr << "Could not find directory " << directory << '\n';
-                throw directory.string();
-            }
-            directorySet = true;
-        }
-        else if (line == "stepRange")
-        {
-            std::getline(linestream, line, '-');
-            stepRange.initStep = std::stoul(line);
-            std::getline(linestream, line, ':');
-            stepRange.endStep = std::stoul(line);
-            linestream >> stepRange.dumpStep;
-
-            if (stepRange.endStep <= stepRange.initStep || stepRange.dumpStep == 0)
-            {
-                std::cerr << "Invalid values of stepRange: " << stepRange.initStep << '-' << stepRange.endStep << ':' << stepRange.dumpStep;
-                throw -1;
-            }
-            stepRangeSet = true;
-        }
-        else if (line == "msd")
-        {
-            if (!directorySet || !stepRangeSet || timestep == 0.0)
-            {
-                std::cerr << "Command 'msd' was called, but either 'timestep'," <<
-                    " 'directory', or 'stepRange' was not set!\n";
-                throw -2;
-            }
-
-            std::size_t beginPos;
-            std::size_t commaPos;
-
-            // Atom type
-            uint32_t atomType;
-            linestream >> atomType;
-
-            // std::vector<uint32_t> typelist;
-
-            // beginPos = 0;
-            // commaPos = line.find(',');
-            // while (commaPos != std::string::npos)
-            // {
-            //     typelist.push_back(std::stoul(line.substr(beginPos, commaPos)));
-            //     beginPos = commaPos + 1;
-            //     commaPos = line.find(',', beginPos);
-            // }
-            // typelist.push_back(std::stoul(line.substr(beginPos, line.size() - beginPos)));
-
-            // std::sort(typelist.begin(), typelist.end());
-            // auto newend = std::unique(typelist.begin(), typelist.end());
-            // typelist.resize(newend - typelist.begin());
-
-            // Gap range in steps
+            std::getline(input, line);
+            std::smatch match;
+            std::regex pattern("\\w");
+            if (!std::regex_search(line, match, pattern))
+                continue;
+            if (line.size() == 0)
+                continue;
+            linestream.str(line);
             linestream >> line;
-            beginPos = 0;
-            commaPos = line.find('-');
-
-            uint64_t minGap = std::stoul(line.substr(0, commaPos));
-            beginPos = commaPos + 1;
-            uint64_t maxGap = std::stoul(line.substr(beginPos, line.size() - beginPos));
-
-            // Output file
-            linestream >> line;
-            fs::path outfile(line);
-            if (!fs::exists(outfile.parent_path()))
+            if (linestream.eof())
+                continue;
+            
+            if (line == "timestep")
             {
-                std::cerr << "Can't write to " << outfile << '\n';
-                throw outfile.string();
+                linestream >> timestep;
+                if (timestep <= 0)
+                {
+                    std::cerr << "Invalid value of timestep: " << timestep << '\n';
+                    throw timestep;
+                }
             }
+            else if (line == "dim")
+            {
+                linestream >> dim;
+                if (dim == 0)
+                {
+                    std::cerr << "dim=0 is not allowed.\n";
+                    throw -3;
+                }
+            }
+            else if (line == "directory")
+            {
+                linestream >> directory;
+                if (!fs::exists(directory))
+                {
+                    std::cerr << "Could not find directory " << directory << '\n';
+                    throw directory.string();
+                }
+                directorySet = true;
+            }
+            else if (line == "stepRange")
+            {
+                std::getline(linestream, line, '-');
+                stepRange.initStep = std::stoul(line);
+                std::getline(linestream, line, ':');
+                stepRange.endStep = std::stoul(line);
+                linestream >> stepRange.dumpStep;
 
-            // Run
-            msd(outfile,
-                directory,
-                stepRange,
-                timestep,
-                atomType,
-                minGap,
-                maxGap,
-                dim);
+                if (stepRange.endStep <= stepRange.initStep || stepRange.dumpStep == 0)
+                {
+                    std::cerr << "Invalid values of stepRange: " << stepRange.initStep << '-' << stepRange.endStep << ':' << stepRange.dumpStep;
+                    throw -1;
+                }
+                stepRangeSet = true;
+            }
+            else if (line == "msd")
+            {
+                if (!directorySet || !stepRangeSet || timestep == 0.0)
+                {
+                    std::cerr << "Command 'msd' was called, but either 'timestep'," <<
+                        " 'directory', or 'stepRange' was not set!\n";
+                    throw -2;
+                }
+
+                std::size_t beginPos;
+                std::size_t commaPos;
+
+                // Atom type
+                uint32_t atomType;
+                linestream >> atomType;
+
+                // std::vector<uint32_t> typelist;
+
+                // beginPos = 0;
+                // commaPos = line.find(',');
+                // while (commaPos != std::string::npos)
+                // {
+                //     typelist.push_back(std::stoul(line.substr(beginPos, commaPos)));
+                //     beginPos = commaPos + 1;
+                //     commaPos = line.find(',', beginPos);
+                // }
+                // typelist.push_back(std::stoul(line.substr(beginPos, line.size() - beginPos)));
+
+                // std::sort(typelist.begin(), typelist.end());
+                // auto newend = std::unique(typelist.begin(), typelist.end());
+                // typelist.resize(newend - typelist.begin());
+
+                // Gap range in steps
+                linestream >> line;
+                beginPos = 0;
+                commaPos = line.find('-');
+
+                uint64_t minGap = std::stoul(line.substr(0, commaPos));
+                beginPos = commaPos + 1;
+                uint64_t maxGap = std::stoul(line.substr(beginPos, line.size() - beginPos));
+
+                // Output file
+                linestream >> line;
+                fs::path outfile(line);
+                if (!fs::exists(outfile.parent_path()))
+                {
+                    std::cerr << "Can't write to " << outfile << '\n';
+                    throw outfile.string();
+                }
+
+                // Run
+                meanSquaredDisplacement(outfile,
+                    directory,
+                    stepRange,
+                    timestep,
+                    atomType,
+                    minGap,
+                    maxGap,
+                    dim,
+                    me,
+                    nprocs,
+                    comm);
+            }
+            
         }
-        
     }
 }
 
