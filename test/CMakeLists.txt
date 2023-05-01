@@ -1,5 +1,9 @@
+find_package(MPI REQUIRED)
 find_package(Boost COMPONENTS unit_test_framework REQUIRED)
 add_definitions(-DBOOST_TEST_DYN_LINK)
+
+find_file(MPI_CXX NAMES mpiCC mpicxx)
+set(CMAKE_CXX_COMPILER ${MPI_CXX})
 
 set(INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../src")
 #message("Include directory: ${INCLUDE_DIR}")
