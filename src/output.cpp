@@ -7,9 +7,9 @@ namespace MDPAT
 {
 template <typename T>
 int writeColumns(const std::vector<T> & values,
-                 int numColumns,
+                 const int numColumns,
                  const std::filesystem::path outfile,
-                 char delimiter)
+                 const char delimiter)
 {
     std::ofstream out(outfile);
     if (out.bad())
@@ -37,7 +37,7 @@ int writeColumns(const std::vector<T> & values,
         for (int j = 0; j < numColumns - 1; ++j)
             out << values[j*numRows + i] << delimiter;
 
-        out << values[(j + 1) * numRows - 1] << '\n';
+        out << values[(numColumns - 1) * numRows + i] << '\n';
     }
 
     return 0;

@@ -7,9 +7,9 @@ namespace MDPAT
 {
 template <typename T>
 int writeColumns(const std::vector<T> & values,
-                 int numColumns,
+                 const int numColumns,
                  const std::filesystem::path outfile,
-                 char delimiter=' ');
+                 const char delimiter=' ');
 
 template <typename T>
 int writeTable(const std::vector<T> & xvalues,
