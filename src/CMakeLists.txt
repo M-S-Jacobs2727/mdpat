@@ -7,11 +7,13 @@ set(CMAKE_CXX_COMPILER ${MPI_CXX})
 add_library(mdpatlib
     bcastContainers.cpp
     initNode.cpp
+    output.cpp
     permuteDims.cpp
-    readInput.cpp
     readTrajectories.cpp
-    splitValues.cpp
     selectFromArray.cpp
+    splitValues.cpp
+    msd.cpp
+    readInput.cpp
 )
 target_link_libraries(mdpatlib PUBLIC MPI::MPI_CXX)
 add_executable(mdpat main.cpp)
