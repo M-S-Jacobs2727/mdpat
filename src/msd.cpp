@@ -190,8 +190,8 @@ void meanSquaredDisplacementOMP(
             for (uint64_t gap = minGap; gap <= maxGap; ++gap)
             {
                 rsq = 0;
-                #pragma omp simd reduction(+:tmp)
-                for (uint64_t frame = 0; frame + gap < nSteps; ++frame)
+                #pragma omp simd reduction(+:rsq)
+                for (uint64_t frame = 0; frame < nSteps - gap; ++frame)
                 {
                     dx = atoms[atom*dim*nSteps + col*nSteps + frame + gap] - 
                          atoms[atom*dim*nSteps + col*nSteps + frame];
