@@ -10,7 +10,7 @@ BOOST_AUTO_TEST_CASE(msd_serial_1)
 {
     fs::path outfile("msd_test.txt");
     fs::path directory("../test/testFiles");
-    StepRange stepRange(0UL, 250UL, 50UL);
+    MDPAT::StepRange stepRange(0UL, 250UL, 50UL);
     double timestep = 0.005;
     uint32_t atomType = 1;
     uint64_t minGap = 0UL;
@@ -19,7 +19,7 @@ BOOST_AUTO_TEST_CASE(msd_serial_1)
     int me = 0;
     int nprocs = 1;
     
-    msd(outfile,
+    MDPAT::meanSquaredDisplacement(outfile,
           directory,
           stepRange,
           timestep,
