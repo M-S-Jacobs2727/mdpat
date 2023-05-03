@@ -1,4 +1,5 @@
 find_package(MPI REQUIRED)
+find_package(OpenMP REQUIRED)
 # find_library(openmpi PATHS $ENV{LD_LIBRARY_PATH}REQUIRED)
 
 find_file(MPI_CXX NAMES mpiCC mpicxx)
@@ -15,7 +16,8 @@ add_library(mdpatlib
     msd.cpp
     readInput.cpp
 )
-target_link_libraries(mdpatlib PUBLIC MPI::MPI_CXX)
+target_compile_options(mdpatlib PRIVATE -Wall)
+target_link_libraries(mdpatlib PUBLIC MPI::MPI_CXX OpenMP::OpenMP_CXX)
 add_executable(mdpat main.cpp)
 
 target_include_directories(mdpat PUBLIC "/home/jacobs/.local/include/**")
