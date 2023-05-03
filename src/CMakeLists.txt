@@ -23,5 +23,4 @@ add_executable(mdpat main.cpp)
 target_include_directories(mdpat PUBLIC "/home/jacobs/.local/include/**")
 target_include_directories(mdpat PUBLIC "/home/jacobs/software/HIP/include/**")
 
-
 target_link_libraries(mdpat PUBLIC mdpatlib)

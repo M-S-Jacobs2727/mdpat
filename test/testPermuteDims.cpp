@@ -132,6 +132,5 @@ BOOST_AUTO_TEST_CASE(two_proc_2d)
         BOOST_TEST(vec[5] == 7);
         BOOST_TEST(vec[6] == 11);
         BOOST_TEST(vec[7] == 15);
-
     }
 }

@@ -212,13 +212,13 @@ Frame<float> readDumpTextHeader(std::istream & dumpFile) {
 
     Frame<float> frame;
     
-    while (true) {
-        dumpFile >> word;
-        if (word != "ITEM:") {
-            cerr << "Syntax error while reading dump file!\n";
-            throw -1;
-        }
+    dumpFile >> word;
+    if (word != "ITEM:") {
+        cerr << "Syntax error while reading dump file!\n";
+        throw -1;
+    }
 
+    while (true) {
         dumpFile >> word;
         if (word == "TIMESTEP") {
             dumpFile >> frame.timestep;
@@ -242,7 +242,9 @@ Frame<float> readDumpTextHeader(std::istream & dumpFile) {
         } else {
             while (word != "ITEM:" && dumpFile.good())
                 dumpFile >> word;
+            continue;
         }
+        dumpFile >> word;
     }
 
     return frame;
@@ -337,15 +339,14 @@ vector<Frame<float>*> readDumpFiles(
 void skipDumpTextHeader(std::istream & dumpFile)
 {
     string word;
-    int i;
+
+    dumpFile >> word;
+    if (word != "ITEM:") {
+        cerr << "Syntax error while reading dump file!\n";
+        throw -1;
+    }
 
     while (true) {
-        dumpFile >> word;
-        if (word != "ITEM:") {
-            cerr << "Syntax error while reading dump file!\n";
-            throw -1;
-        }
-
         dumpFile >> word;
         if (word == "ATOMS") {
             dumpFile.ignore(10000, '\n');

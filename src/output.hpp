@@ -5,15 +5,17 @@
 
 namespace MDPAT
 {
-template <typename T>
-int writeColumns(const std::vector<T> & values,
-                 const int numColumns,
-                 const std::filesystem::path outfile,
-                 const char delimiter=' ');
+    template <typename T>
+    int writeColumns(
+        const std::vector<T> &values,
+        const int numColumns,
+        const std::filesystem::path outfile,
+        const char delimiter = ' ');
 
-template <typename T>
-int writeTable(const std::vector<T> & xvalues,
-               const std::vector<T> & yvalues,
-               const std::vector<T> & values,
-               const std::filesystem::path outfile);
+    template <typename T>
+    int writeTable(
+        const std::vector<T> &xvalues,
+        const std::vector<T> &yvalues,
+        const std::vector<T> &values,
+        const std::filesystem::path outfile);
 }

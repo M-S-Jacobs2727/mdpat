@@ -8,11 +8,22 @@
 
 namespace MDPAT
 {
-void bcast(std::string st, int source, MPI_Comm comm);
+    void bcast(
+        std::string st,
+        int source,
+        MPI_Comm comm);
 
-template<typename T>
-void bcast(std::vector<T> vec, MPI_Datatype datatype, int source, MPI_Comm comm);
+    template <typename T>
+    void bcast(
+        std::vector<T> vec,
+        MPI_Datatype datatype,
+        int source,
+        MPI_Comm comm);
 
-template<typename T>
-void bcast(std::vector<std::vector<T>> vec, MPI_Datatype datatype, int source, MPI_Comm comm);
+    template <typename T>
+    void bcast(
+        std::vector<std::vector<T>> vec,
+        MPI_Datatype datatype,
+        int source,
+        MPI_Comm comm);
 }

@@ -19,15 +19,16 @@ BOOST_AUTO_TEST_CASE(msd_serial_1)
     int me = 0;
     int nprocs = 1;
     
-    MDPAT::meanSquaredDisplacement(outfile,
-          directory,
-          stepRange,
-          timestep,
-          atomType,
-          minGap, // in number of steps
-          maxGap, // in number of steps
-          dim,    // number of spatial dimensions
-          me,
-          nprocs,
-          MPI_COMM_WORLD);
+    MDPAT::meanSquaredDisplacement(
+        outfile,
+        directory,
+        stepRange,
+        timestep,
+        atomType,
+        minGap, // in number of steps
+        maxGap, // in number of steps
+        dim,    // number of spatial dimensions
+        me,
+        nprocs,
+        MPI_COMM_WORLD);
 }

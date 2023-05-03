@@ -7,5 +7,9 @@
 
 namespace MDPAT
 {
-void initNode(int argc, char **argv, int & me, int & nprocs);
+    void initNode(
+        int argc,
+        char **argv,
+        int &me,
+        int &nprocs);
 }
