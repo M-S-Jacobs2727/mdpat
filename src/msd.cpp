@@ -4,17 +4,18 @@
 namespace MDPAT
 {
 template<typename T>
-msd_results<T> meanSquaredDisplacement(std::vector<int32_t> & typelist,
-                   std::vector<T> unwrapped_trajectories,
-                   const uint64_t first_frame,
-                   const uint64_t num_frames,
-                   const uint64_t num_atoms,
-                   const uint64_t num_spatial_dims,
-                   const uint64_t gap_start,
-                   const uint64_t gap_end,
-                   const int me,
-                   const int nprocs,
-                   MPI_Comm comm)
+msd_results<T> meanSquaredDisplacement(
+    std::vector<int32_t> & typelist,
+    std::vector<T> unwrapped_trajectories,
+    const uint64_t first_frame,
+    const uint64_t num_frames,
+    const uint64_t num_atoms,
+    const uint64_t num_spatial_dims,
+    const uint64_t gap_start,
+    const uint64_t gap_end,
+    const int me,
+    const int nprocs,
+    MPI_Comm comm)
 {
     // * As a whole, this library should read the trajectories once and send
     // * them whole-cloth to each method (such as msd). However, since a method
@@ -78,17 +79,18 @@ msd_results<T> meanSquaredDisplacement(std::vector<int32_t> & typelist,
     return results;
 }
 
-void meanSquaredDisplacement(fs::path outfile,
-         fs::path directory,
-         StepRange stepRange,
-         double timestep,
-         uint32_t atomType,
-         uint64_t minGap, // in number of steps
-         uint64_t maxGap, // in number of steps
-         uint32_t dim,    // number of spatial dimensions
-         int me,
-         int nprocs,
-         MPI_Comm comm)
+void meanSquaredDisplacement(
+    fs::path outfile,
+    fs::path directory,
+    StepRange stepRange,
+    double timestep,
+    uint32_t atomType,
+    uint64_t minGap, // in number of steps
+    uint64_t maxGap, // in number of steps
+    uint32_t dim,    // number of spatial dimensions
+    int me,
+    int nprocs,
+    MPI_Comm comm)
 {
     uint64_t nSteps = (stepRange.endStep - stepRange.initStep) / stepRange.dumpStep + 1;
     auto [myFirstStep, myNumSteps] = splitValues(nSteps, me, nprocs);
@@ -145,17 +147,18 @@ void meanSquaredDisplacement(fs::path outfile,
     }
 }
 
-void meanSquaredDisplacementOMP(fs::path outfile,
-             fs::path directory,
-             StepRange stepRange,
-             double timestep,
-             uint32_t atomType,
-             uint64_t minGap, // in number of steps
-             uint64_t maxGap, // in number of steps
-             uint32_t dim,    // number of spatial dimensions
-             int me,
-             int nprocs,
-             MPI_Comm comm)
+void meanSquaredDisplacementOMP(
+    fs::path outfile,
+    fs::path directory,
+    StepRange stepRange,
+    double timestep,
+    uint32_t atomType,
+    uint64_t minGap, // in number of steps
+    uint64_t maxGap, // in number of steps
+    uint32_t dim,    // number of spatial dimensions
+    int me,
+    int nprocs,
+    MPI_Comm comm)
 {
     uint64_t nSteps = (stepRange.endStep - stepRange.initStep) / stepRange.dumpStep + 1;
     auto [myFirstStep, myNumSteps] = splitValues(nSteps, me, nprocs);
