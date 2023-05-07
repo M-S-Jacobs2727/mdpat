@@ -35,8 +35,8 @@ namespace MDPAT
     };
 
     std::string getFilepath(
-        std::string directory,
-        int step);
+        const std::string & directory,
+        const int step);
 
     Frame<double> readDumpBinary(std::string filepath);
 
@@ -73,7 +73,7 @@ namespace MDPAT
         int nAtoms,
         int totalCols,
         std::vector<int> columns,
-        std::string directory);
+        const std::string & directory);
 
     std::vector<float> getTrajectories(
         bool wrapped,
