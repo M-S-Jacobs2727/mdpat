@@ -31,4 +31,6 @@ BOOST_AUTO_TEST_CASE(msd_serial_1)
         me,
         nprocs,
         MPI_COMM_WORLD);
+
+    BOOST_TEST(fs::is_regular_file(outfile));
 }
