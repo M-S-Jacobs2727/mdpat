@@ -159,12 +159,13 @@ namespace MDPAT
         int nprocs,
         MPI_Comm comm)
     {
-        uint64_t nSteps = (stepRange.endStep - stepRange.initStep) / stepRange.dumpStep + 1;
-        auto [myFirstStep, myNumSteps] = splitValues(nSteps, me, nprocs);
+        // uint64_t nSteps = (stepRange.endStep - stepRange.initStep) / stepRange.dumpStep + 1;
+        auto [myFirstStep, myNumSteps] = splitValues(stepRange.nSteps, me, nprocs);
 
-        StepRange myStepRange(myFirstStep,
-                              myFirstStep + stepRange.dumpStep * (myNumSteps - 1),
-                              stepRange.dumpStep);
+        StepRange myStepRange(
+            myFirstStep,
+            myFirstStep + stepRange.dumpStep * (myNumSteps - 1),
+            stepRange.dumpStep);
 
         auto atoms = getTrajectories(false, myStepRange, directory, atomType, dim);
         auto nAtoms = atoms.size() / dim / myNumSteps;
@@ -172,7 +173,7 @@ namespace MDPAT
         std::vector<uint64_t> dimLengths = {myNumSteps, nAtoms, dim};
         std::vector<uint64_t> newDims = {1, 2, 0};
         permuteDimsParallel(atoms, dimLengths, newDims, me, nprocs, comm);
-        auto myNumAtoms = atoms.size() / dim / nSteps;
+        auto myNumAtoms = atoms.size() / dim / stepRange.nSteps;
 
         minGap /= myStepRange.dumpStep;
         maxGap /= myStepRange.dumpStep;
@@ -190,10 +191,10 @@ namespace MDPAT
                 {
                     rsq = 0;
 #pragma omp simd reduction(+ : rsq)
-                    for (uint64_t frame = 0; frame < nSteps - gap; ++frame)
+                    for (uint64_t frame = 0; frame < stepRange.nSteps - gap; ++frame)
                     {
-                        dx = atoms[atom * dim * nSteps + col * nSteps + frame + gap] -
-                             atoms[atom * dim * nSteps + col * nSteps + frame];
+                        dx = atoms[atom * dim * stepRange.nSteps + col * stepRange.nSteps + frame + gap] -
+                             atoms[atom * dim * stepRange.nSteps + col * stepRange.nSteps + frame];
                         rsq += dx * dx;
                     }
 #pragma omp atomic
@@ -212,7 +213,7 @@ namespace MDPAT
             std::ofstream outstream(outfile);
             for (uint64_t gap = minGap; gap <= maxGap; ++gap)
                 outstream << gap * myStepRange.dumpStep * timestep << ' '
-                          << msd[gap - minGap] / nAtoms / (nSteps - gap) << '\n';
+                          << msd[gap - minGap] / nAtoms / (stepRange.nSteps - gap) << '\n';
             outstream.close();
         }
     }
