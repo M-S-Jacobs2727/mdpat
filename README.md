@@ -6,6 +6,16 @@ A high-performance, high-throughput application meant for supercomputers (e.g., 
 
 Designed to be modular with swappable interfaces for computer architecture, trajectory file formats, etc.
 
+## TODO
+
+ - Fix type warnings
+ - Update readTrajectories tests
+ - Finish serial msd tests
+ - Do parallel msd tests
+ - Do readInput tests
+ - Finish readInput
+ - Upgrade permuteDimsParallel for efficiency
+
 ## `src/initNode.cpp`
 
 This initializes MPI and the GPUs on the system. Currently, only Summit's architecture is supported, but we will add support for Frontier as well.
