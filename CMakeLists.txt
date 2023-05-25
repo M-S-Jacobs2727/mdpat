@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_subdirectory(src)
 
-option(BUILD_TESTS "Build the unit tests" OFF)
+option(BUILD_TESTS "Build the unit tests" ON)
 if(BUILD_TESTS)
     enable_testing()
     add_subdirectory(test)

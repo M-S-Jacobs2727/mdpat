@@ -34,12 +34,19 @@ namespace MDPAT
         std::vector<T> atoms;
     };
 
+    Frame<double> readDumpBinary(std::string filepath);
+
     std::string getFilepath(
         const std::string & directory,
         const int step);
 
-    Frame<double> readDumpBinary(std::string filepath);
+    std::string getFilename(const uint64_t step);
 
+    int32_t findCoordColumn(
+        const Frame<float> & frame,
+        const char coord,
+        const bool wrapped);
+    
     int readAtomsSection(
         std::istream &dumpFile,
         std::vector<int> columnFlag,
@@ -55,31 +62,15 @@ namespace MDPAT
         std::vector<uint32_t> typeflag,
         uint64_t nValidAtoms);
 
-    int readDumpTextFrame(
-        std::istream &dumpFile,
-        std::vector<int> columnFlag,
-        int nCols,
-        Frame<float> *dump);
+    Frame<float> readDumpTextHeader(std::istream &dumpFile);
 
-    int readDumpTextFile(
-        std::istream &dumpFile,
-        std::vector<int> columnFlag,
-        std::vector<Frame<float> *> &dumpFrames);
-
-    std::vector<Frame<float> *> readDumpFiles(
-        int firstStep,
-        int nSteps,
-        int dumpStep,
-        int nAtoms,
-        int totalCols,
-        std::vector<int> columns,
-        const std::string & directory);
+    void skipDumpTextHeader(std::istream &dumpFile);
 
     std::vector<float> getTrajectories(
-        bool wrapped,
-        StepRange stepRange,
         std::filesystem::path directory,
-        uint32_t atomType = 0,
-        uint32_t dim = 3);
+        const StepRange stepRange,
+        const bool wrapped,
+        const uint32_t atomType = 0,
+        const uint32_t dim = 3);
 
 }

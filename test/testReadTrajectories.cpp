@@ -1,45 +1,40 @@
 #define BOOST_TEST_MODULE header-only testReadTrajectories
 #include <boost/test/included/unit_test.hpp> 
 #include "../src/readTrajectories.hpp"
+#include <filesystem>
 
-BOOST_AUTO_TEST_CASE(single_text_file)
+namespace fs = std::filesystem;
+
+BOOST_AUTO_TEST_CASE(find_coord_column)
 {
-    const std::string filename = "../test/testFiles/dump.0";
-    std::ifstream dumpFile(filename);
-    BOOST_TEST(dumpFile.good());
-    
-    std::vector<int> columnFlag(4, 1);
-    // columnFlag.resize(4, 1);
-    
-    std::vector<MDPAT::Frame<float>*> frames;
-    frames.resize(1);
-    frames[0] = new MDPAT::Frame<float>;
-    
-    auto err_code = MDPAT::readDumpTextFile(dumpFile, columnFlag, frames);
+    MDPAT::Frame <float>frame;
+    frame.columnLabels = {"id", "type", "xs", "ys", "zs"};
 
-    BOOST_TEST(err_code == 0);
-    
-    BOOST_TEST(frames[0]->nAtoms == 500L);
-    BOOST_TEST(frames[0]->timestep == 0L);
+    auto ret = MDPAT::findCoordColumn(frame, 'x', true);
+    BOOST_TEST(ret == -2);
 
-    BOOST_TEST(frames[0]->box[0] == 0.0F);
-    BOOST_TEST(frames[0]->box[1] == 8.3979809569125372F);
-    BOOST_TEST(frames[0]->box[2] == 0.0F);
-    BOOST_TEST(frames[0]->box[3] == 8.3979809569125372F);
-    BOOST_TEST(frames[0]->box[4] == 0.0F);
-    BOOST_TEST(frames[0]->box[5] == 8.3979809569125372F);
+    ret = MDPAT::findCoordColumn(frame, 'y', true);
+    BOOST_TEST(ret == -3);
 
-    BOOST_TEST(frames[0]->atoms.size() == 2000);
+    ret = MDPAT::findCoordColumn(frame, 'z', true);
+    BOOST_TEST(ret == -4);
+}
 
-    // Atom 1
-    BOOST_TEST(frames[0]->atoms[0] == 1.0F);
-    BOOST_TEST(frames[0]->atoms[1] == 0.0F);
-    BOOST_TEST(frames[0]->atoms[2] == 0.0F);
-    BOOST_TEST(frames[0]->atoms[3] == 0.0F);
+BOOST_AUTO_TEST_CASE(get_trajectories)
+{
+    MDPAT::StepRange steprange(0UL, 250UL, 50UL);
 
-    // Atom 6 (the first out-of-order atom in the file)
-    BOOST_TEST(frames[0]->atoms[20] == 1.0F);
-    BOOST_TEST(frames[0]->atoms[21] == 0.3F);
-    BOOST_TEST(frames[0]->atoms[22] == 0.1F);
-    BOOST_TEST(frames[0]->atoms[23] == 0.0F);
+    BOOST_TEST(steprange.nSteps == 6);
+
+    fs::path directory("../test/testFiles");
+    auto atoms = MDPAT::getTrajectories(directory, steprange, true, 0, 3);
+
+    BOOST_TEST(atoms.size() == 500*6*3  );
+
+    BOOST_TEST(atoms[0] == 0.0F);
+    BOOST_TEST(atoms[1] == 0.0F);
+    BOOST_TEST(atoms[2] == 0.0F);
+    BOOST_TEST(atoms[3] == 0.83979809569125372F);
+    BOOST_TEST(atoms[4] == 0.83979809569125372F);
+    BOOST_TEST(atoms[5] == 0.0F);
 }
