@@ -98,7 +98,7 @@ namespace MDPAT
                               myFirstStep + stepRange.dumpStep * (myNumSteps - 1),
                               stepRange.dumpStep);
 
-        auto atoms = getTrajectories(false, myStepRange, directory, atomType, dim);
+        auto atoms = getTrajectories(directory, myStepRange, false, atomType, dim);
         auto nAtoms = atoms.size() / dim / myNumSteps;
 
         std::vector<uint64_t> dimLengths = {myNumSteps, nAtoms, dim};
@@ -167,7 +167,7 @@ namespace MDPAT
             myFirstStep + stepRange.dumpStep * (myNumSteps - 1),
             stepRange.dumpStep);
 
-        auto atoms = getTrajectories(false, myStepRange, directory, atomType, dim);
+        auto atoms = getTrajectories(directory, myStepRange, false, atomType, dim);
         auto nAtoms = atoms.size() / dim / myNumSteps;
 
         std::vector<uint64_t> dimLengths = {myNumSteps, nAtoms, dim};
