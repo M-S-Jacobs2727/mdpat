@@ -2,69 +2,56 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <cstring>
 #include <filesystem>
 #include <iostream>
 #include <regex>
 #include <sstream>
+#include <map>
 #include <string>
 #include <vector>
 
 #include <mpi.h>
 
-#include "msd.hpp"
-#include "readTrajectories.hpp"
+#include "bcastContainers.hpp"
+#include "error.hpp"
+#include "msd.hpp"   // add other analysis files as we write them
+#include "stepRange.hpp"
+#include "trajectory.hpp"
 
 namespace MDPAT
 {
-    // TODO: Make into a class? Make a method to verify that values are initialized?
-    // Or don't initialize values?
-    struct InputValues
-    {
-        long int initStep = -1L;
-        long int endStep = -1L;
-        long int dumpStep = -1L;
-        std::string directory = "";
-        long int breakStep = 0L;
-        long int nAtoms = -1L;
-        int totalCols = -1;
-        std::vector<int> atomTypes;
-        std::vector<int> columns;
-        float dt = 0.0F;
-        int dim = 3;
-        int NN = 1;
-        int binFactor = 1;
-        int numBins = 0;
-        std::string vectorFile = "";
-    };
-
-    InputValues readInput(std::istream &stream);
-
-    struct Commands
-    {
-        std::vector<std::string> lines;
-    };
-
     class InputReader
     {
     public:
-        InputReader();
+        InputReader(const std::string &);
         ~InputReader();
-        void parse(); // Should only be run by proc 0
-        void execute();
+        void runFile();
+        std::vector<std::string> parseLine(const std::string &);
+        void executeCommand(const std::vector<std::string> &);
+
+        typedef void(*CommandPtr)(MDPAT::Trajectory&, const std::vector<std::string> &);
+        std::map<char *, CommandPtr> commandMap {
+            {"msd", &meanSquaredDisplacement},
+        };
 
     private:
-        std::istream input;
-        std::filesystem::path directory;
+        std::filesystem::path inputFile;
+        std::ifstream input;
+        std::string dumpfileString;
         StepRange stepRange;
+        MDPAT::Trajectory trajectory;
+
         double timestep = 0.0;
-        uint32_t dim = 3U;
-        bool directorySet = false;
-        bool stepRangeSet = false;
-        std::string line;
-        std::vector<std::string> lines;
-        int me, nprocs;
-        MPI_Comm &comm;
+        int me;
+
+        void trajCmd();
+        void timestepCmd();
+        void incorrectArgs(
+            const std::string & command,
+            const int expected_nargs,
+            const int found_nargs);
+        StepRange parseRange(const std::string &);
+        StepRange parseRange(const std::string &, const uint64_t);
     };
 
 }

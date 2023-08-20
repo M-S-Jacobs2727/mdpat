@@ -2,211 +2,253 @@
 
 namespace fs = std::filesystem;
 using std::string;
+using std::vector;
 
 namespace MDPAT
 {
-    InputValues readInput(std::istream &stream)
+    InputReader::InputReader(const string & inputFile) : 
+        inputFile(inputFile)
     {
-        InputValues input;
-        string line;
-        while (!stream.eof())
-        {
-            stream >> line;
-            if (line.empty())
-                break;
-
-            // Mandatory arguments
-            if (line == "initStep")
-                stream >> input.initStep;
-            else if (line == "endStep")
-                stream >> input.endStep;
-            else if (line == "dumpStep")
-                stream >> input.dumpStep;
-            else if (line == "directory")
-                stream >> input.directory;
-            else if (line == "nAtoms")
-                stream >> input.nAtoms;
-            else if (line == "totalCols")
-                stream >> input.totalCols;
-            // Optional arguments
-            else if (line == "breakStep")
-                stream >> input.breakStep;
-            else if (line == "atomTypes")
-            {
-                std::getline(stream, line);
-                std::istringstream myline(line);
-                int tmp;
-                myline >> tmp;
-                while (!myline && tmp > 0)
-                {
-                    input.atomTypes.push_back(tmp);
-                    myline >> tmp;
-                }
-            }
-            else if (line == "columns")
-            {
-                std::getline(stream, line);
-                std::istringstream myline(line);
-                int tmp;
-                myline >> tmp;
-                while (!myline && tmp > 0)
-                {
-                    input.columns.push_back(tmp);
-                    myline >> tmp;
-                }
-            }
-            else if (line == "breakStep")
-                stream >> input.breakStep;
-            else if (line == "dt")
-                stream >> input.dt;
-            else if (line == "dim")
-                stream >> input.dim;
-            else if (line == "NN")
-                stream >> input.NN;
-            else if (line == "binFactor")
-                stream >> input.binFactor;
-            else if (line == "numBins")
-                stream >> input.numBins;
-            else if (line == "vectorFile")
-                stream >> input.vectorFile;
-        }
-        if (input.initStep < 0 || input.endStep <= 0 || input.dumpStep <= 0 || input.directory == "" || input.nAtoms <= 0 || input.totalCols <= 0)
-            std::cerr << "Invalid or missing settings in input file!" << std::endl;
-        return input;
-    }
-
-    void InputReader::parse()
-    {
-        if (me == 0)
-        {
-            std::istringstream linestream;
-            while (input)
-            {
-                std::getline(input, line);
-                std::smatch match;
-                std::regex pattern("\\w");
-                if (!std::regex_search(line, match, pattern))
-                    continue;
-                if (line.size() == 0)
-                    continue;
-                linestream.str(line);
-                linestream >> line;
-                if (linestream.eof())
-                    continue;
-
-                if (line == "timestep")
-                {
-                    linestream >> timestep;
-                    if (timestep <= 0)
-                    {
-                        std::cerr << "Invalid value of timestep: " << timestep << '\n';
-                        throw timestep;
-                    }
-                }
-                else if (line == "dim")
-                {
-                    linestream >> dim;
-                    if (dim == 0)
-                    {
-                        std::cerr << "dim=0 is not allowed.\n";
-                        throw -3;
-                    }
-                }
-                else if (line == "directory")
-                {
-                    linestream >> directory;
-                    if (!fs::exists(directory))
-                    {
-                        std::cerr << "Could not find directory " << directory << '\n';
-                        throw directory.string();
-                    }
-                    directorySet = true;
-                }
-                else if (line == "stepRange")
-                {
-                    std::getline(linestream, line, '-');
-                    stepRange.initStep = std::stoul(line);
-                    std::getline(linestream, line, ':');
-                    stepRange.endStep = std::stoul(line);
-                    linestream >> stepRange.dumpStep;
-
-                    if (stepRange.endStep <= stepRange.initStep || stepRange.dumpStep == 0)
-                    {
-                        std::cerr << "Invalid values of stepRange: " << stepRange.initStep << '-' << stepRange.endStep << ':' << stepRange.dumpStep;
-                        throw -1;
-                    }
-                    stepRangeSet = true;
-                }
-                else if (line == "msd")
-                {
-                    if (!directorySet || !stepRangeSet || timestep == 0.0)
-                    {
-                        std::cerr << "Command 'msd' was called, but either 'timestep',"
-                                  << " 'directory', or 'stepRange' was not set!\n";
-                        throw -2;
-                    }
-
-                    std::size_t beginPos;
-                    std::size_t commaPos;
-
-                    // Atom type
-                    uint32_t atomType;
-                    linestream >> atomType;
-
-                    // std::vector<uint32_t> typelist;
-
-                    // beginPos = 0;
-                    // commaPos = line.find(',');
-                    // while (commaPos != std::string::npos)
-                    // {
-                    //     typelist.push_back(std::stoul(line.substr(beginPos, commaPos)));
-                    //     beginPos = commaPos + 1;
-                    //     commaPos = line.find(',', beginPos);
-                    // }
-                    // typelist.push_back(std::stoul(line.substr(beginPos, line.size() - beginPos)));
-
-                    // std::sort(typelist.begin(), typelist.end());
-                    // auto newend = std::unique(typelist.begin(), typelist.end());
-                    // typelist.resize(newend - typelist.begin());
-
-                    // Gap range in steps
-                    linestream >> line;
-                    beginPos = 0;
-                    commaPos = line.find('-');
-
-                    uint64_t minGap = std::stoul(line.substr(0, commaPos));
-                    beginPos = commaPos + 1;
-                    uint64_t maxGap = std::stoul(line.substr(beginPos, line.size() - beginPos));
-
-                    // Output file
-                    linestream >> line;
-                    fs::path outfile(line);
-                    if (!fs::exists(outfile.parent_path()))
-                    {
-                        std::cerr << "Can't write to " << outfile << '\n';
-                        throw outfile.string();
-                    }
-
-                    // Run
-                    meanSquaredDisplacement(
-                        outfile,
-                        directory,
-                        stepRange,
-                        timestep,
-                        atomType,
-                        minGap,
-                        maxGap,
-                        dim,
-                        me,
-                        nprocs,
-                        comm);
-                }
-            }
-        }
+        MPI_Comm_rank(MPI_COMM_WORLD, &me);
     }
 
     InputReader::~InputReader()
+    {}
+
+    void InputReader::runFile()
     {
+        if (!fs::is_regular_file(inputFile))
+            errorAll(Error::IOERROR, "Input file %s does not exist.", inputFile.c_str());
+
+        if (me == 0)
+        {
+            input.open(inputFile);
+            if (input.bad())
+                errorOne(Error::IOERROR, "Couldn't open input file: %s", inputFile.c_str());
+        }
+
+        bool eof = false;
+        string line;
+        while (!eof)
+        {
+            if (me == 0)
+            {
+                std::getline(input, line);
+                eof = input.eof();
+            }
+            bcast(line, 0, MPI_COMM_WORLD);
+            const auto words = parseLine(line);
+            if (words.size() > 0UL)
+                executeCommand(words);
+            MPI_Bcast(&eof, 1, MPI_CXX_BOOL, 0, MPI_COMM_WORLD);
+        }
+
+        input.close();
     }
+
+    vector<string> InputReader::parseLine(const string & line)
+    {
+        vector<string> words;
+        if (line.find_first_not_of(" \t\n") == string::npos)
+            return words;
+
+        string word;
+        std::istringstream iss(line);
+        iss >> word;
+
+        if (commandMap.find(word.data()) == commandMap.end())
+        {
+            errorAll(Error::SYNTAXERROR, "Command not recognized: %s", word.c_str());
+        }
+
+        words.push_back(word);
+        while (!iss.eof())
+        {
+            iss >> word;
+
+            auto pos = word.find('"');
+            if (pos == 0UL)
+            {
+                pos = word.find('"', pos);
+                if (pos == word.size() - 1)
+                {
+                    words.push_back(word.substr(1, word.size() - 2));
+                }
+                else if (pos != string::npos)
+                {
+                    errorAll(Error::SYNTAXERROR, "Invalid syntax: %s", line);
+                }
+                else
+                {
+                    std::ostringstream oss(word.substr(1));
+                    while (true)
+                    {
+                        iss >> word;
+                        pos = word.find('"');
+                        if (pos == string::npos)
+                        {
+                            oss << word;
+                        }
+                        else if (pos == word.size() - 1)
+                        {
+                            oss << word.substr(0, word.size() - 1);
+                            break;
+                        }
+                        else
+                        {
+                            errorAll(Error::SYNTAXERROR, "Invalid syntax: %s", line);
+                        }
+
+                        if (iss.eof())
+                        {
+                            errorAll(Error::SYNTAXERROR, "Unmatched quotation mark: %s", line);
+                        }
+                    }
+
+                    words.push_back(oss.str());
+                }
+                continue;
+            }
+            else if (pos != string::npos)
+            {
+                errorAll(Error::SYNTAXERROR, "Invalid syntax: %s", line);
+            }
+
+            pos = word.find('#');
+            if (pos == 0UL)
+                break;
+            else if (pos != string::npos)
+            {
+                words.push_back(word.substr(0, pos));
+                break;
+            }
+
+            words.push_back(word);
+        }
+        return words;
+    }
+
+    void InputReader::executeCommand(const vector<string> & words)
+    {
+        const string command = words[0];
+        if (command == "trajectory") trajCmd();
+        else if (commandMap.find(command) != commandMap.end()) 
+        {
+            if (!trajectory.isLoaded)
+                errorAll(Error::ARGUMENTERROR, "Command `%s` called without a loaded trajectory", command);
+            const auto args = {words.begin()+1, words.end()};
+            commandMap[command](trajectory, args);
+            // trajectory->reset();  // undo any permutation of the data
+        }
+        else errorAll(Error::SYNTAXERROR, "Unknown command: %s", command);
+    }
+
+    void InputReader::trajCmd(const vector<string> & words)
+    {
+        if (words.size() != 3)
+            incorrectArgs(words[0], 1, words.size() - 1);
+
+        fs::path tmp(words[1]);
+        fs::path directory = tmp.parent_path();
+        if (!fs::is_directory(directory))
+            errorAll(Error::IOERROR, "Could not find directory for dumpfiles: %s", directory.c_str());
+
+        dumpfileString = tmp.string();
+
+        // TODO: make general for single-file dumpfiles and per-timestep dumpfiles
+        // For single-file dumpfiles, `dumpfileString` will be a single file with no % signs.
+        // These will have to be parsed step-by-step in `readTrajectories.cpp` with a check on the recorded timestep.
+        // For per-timestep dumpfiles, `dumpfileString` will contain a % sign (substitution point)
+        // and should be able to reference multiple files within a directory. 
+        // This is probably easiest to do in `readTrajectories.cpp` completely, 
+        // so that `dumpfileString` and `stepRange` will be smaller and easier to pass around.
+
+        stepRange = parseRange(words[2]);
+
+        if (stepRange.endStep <= stepRange.initStep || stepRange.dumpStep == 0)
+            errorAll(
+                Error::ARGUMENTERROR,
+                "Invalid range: %s\n"
+                "End of range must be at least as large as beginning,"
+                " and the step size must be greater than 0.",
+                words[2]);
+        
+        trajectory.read(directory, dumpfileString, stepRange);
+    }
+
+    void InputReader::incorrectArgs(
+        const string & command,
+        const int expected_nargs,
+        const int found_nargs)
+    {
+        errorAll(
+            Error::ARGUMENTERROR, 
+            "Incorrect number of args for command %s: expected %d, found %d",
+            command.c_str(),
+            expected_nargs,
+            found_nargs);
+    }
+    
+    StepRange InputReader::parseRange(
+        const std::string & rangeString)
+    {
+        const char message[] = "Invalid range syntax: %s\nMust be of form <init>-<end>:<dump>, e.g., 0-1000000:1000";
+
+        auto pos = rangeString.find_first_not_of("0123456789-:");
+        if (pos != string::npos)
+            errorAll(Error::SYNTAXERROR, message, rangeString);
+        
+        auto count = std::count(rangeString.begin(), rangeString.end(), '-');
+        if (count != 1)
+            errorAll(Error::SYNTAXERROR, message, rangeString);
+        
+        auto count = std::count(rangeString.begin(), rangeString.end(), ':');
+        if (count != 1)
+            errorAll(Error::SYNTAXERROR, message, rangeString);
+
+        pos = rangeString.find_first_of(":-");
+        if (pos == 0UL)
+            errorAll(Error::SYNTAXERROR, message, rangeString);
+        if (rangeString[pos] == ':')
+            errorAll(Error::SYNTAXERROR, message, rangeString);
+        auto hyphenPos = pos;
+        pos = rangeString.find(':');
+
+        auto range = StepRange(
+            std::stoul(rangeString.substr(0, hyphenPos - 1)),
+            std::stoul(rangeString.substr(hyphenPos, pos - hyphenPos - 1)),
+            std::stoul(rangeString.substr(pos))
+        );
+
+        return range;
+    }
+
+    StepRange InputReader::parseRange(
+        const std::string & rangeString,
+        const uint64_t dumpStep)
+    {
+        const char message[] = "Invalid range syntax: %s\nMust be of form <init>-<end>, e.g., 0-1000000";
+
+        auto pos = rangeString.find_first_not_of("0123456789-");
+        if (pos != string::npos)
+            errorAll(Error::SYNTAXERROR, message, rangeString);
+        
+        auto count = std::count(rangeString.begin(), rangeString.end(), '-');
+        if (count != 1)
+            errorAll(Error::SYNTAXERROR, message, rangeString);
+
+        pos = rangeString.find('-');
+        if (pos == 0UL || pos == rangeString.size() - 1UL)
+            errorAll(Error::SYNTAXERROR, message, rangeString);
+
+        auto range = StepRange(
+            std::stoul(rangeString.substr(0, pos - 1)),
+            std::stoul(rangeString.substr(pos)),
+            dumpStep
+        );
+
+        return range;
+    }
+
 
 }
