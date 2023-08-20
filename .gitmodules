@@ -1,0 +1,3 @@
+[submodule "src/mdbin"]
+	path = src/mdbin
+	url = https://code.ornl.gov/8mj/mdbin.git
