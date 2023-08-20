@@ -3,7 +3,7 @@
 namespace MDPAT
 {
     template <typename T>
-    msd_results<T> meanSquaredDisplacement(
+    msd_results<T> meanSquaredDisplacement1(
         std::vector<int32_t> &typelist,
         std::vector<T> unwrapped_trajectories,
         const uint64_t first_frame,
@@ -78,7 +78,7 @@ namespace MDPAT
         return results;
     }
 
-    void meanSquaredDisplacement(
+    void meanSquaredDisplacement2(
         fs::path outfile,
         fs::path directory,
         StepRange stepRange,

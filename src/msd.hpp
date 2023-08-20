@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstdint>
 #include <filesystem>
 #include <vector>
@@ -21,8 +23,13 @@ namespace MDPAT
         std::vector<T> msd;
     };
 
+    void meanSquaredDisplacement(
+        Trajectory&,
+        const std::vector<std::string> &
+    );
+
     template <typename T>
-    msd_results<T> meanSquaredDisplacement(
+    msd_results<T> meanSquaredDisplacement1(
         std::vector<int32_t> &typelist,
         std::vector<T> unwrapped_trajectories,
         const uint64_t first_frame,
@@ -35,7 +42,7 @@ namespace MDPAT
         const int nprocs,
         MPI_Comm comm);
 
-    void meanSquaredDisplacement(
+    void meanSquaredDisplacement2(
         fs::path outfile,
         fs::path directory,
         StepRange stepRange,
