@@ -17,6 +17,7 @@ namespace MDPAT
         uint64_t endStep = 0UL;
         uint64_t dumpStep = 0UL;
         uint64_t nSteps = 0UL;
+        StepRange() : initStep(0UL), endStep(0UL), dumpStep(0UL), nSteps(0UL) {}
         StepRange(uint64_t iStep, uint64_t eStep, uint64_t dStep) : initStep(iStep), endStep(eStep), dumpStep(dStep)
         {
             nSteps = (eStep - iStep) / dStep + 1UL;

@@ -176,7 +176,7 @@ namespace MDPAT
         auto it = colbegin;
         while (true)
         {
-            it = std::find_if(it, colend, [coord](string l){return l[0] == coord;});
+            it = std::find_if(it+1, colend, [coord](string l){return l[0] == coord;});
             if (it == colend)
             {
                 // std::cerr << "Couldn't find " << coord << " coordinate!\n";
