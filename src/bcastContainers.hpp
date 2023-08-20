@@ -13,6 +13,11 @@ namespace MDPAT
         int source,
         MPI_Comm comm);
 
+    void bcast(
+        std::vector<std::string> vec,
+        int source,
+        MPI_Comm comm);
+
     template <typename T>
     void bcast(
         std::vector<T> vec,

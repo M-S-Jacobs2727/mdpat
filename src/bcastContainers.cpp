@@ -12,6 +12,19 @@ namespace MDPAT
         st.resize(strlen);
         MPI_Bcast(const_cast<char *>(st.data()), strlen, MPI_CHAR, source, comm);
     }
+    
+    void bcast(
+        std::vector<std::string> vec,
+        int source,
+        MPI_Comm comm)
+    {
+        int size = vec.size();
+        MPI_Bcast(&size, 1, MPI_INT, source, comm);
+        vec.resize(size);
+
+        for (int i = 0; i < size; ++i)
+            bcast(vec[0], source, comm);
+    }
 
     template <typename T>
     void bcast(
