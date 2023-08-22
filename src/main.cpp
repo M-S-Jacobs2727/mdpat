@@ -3,5 +3,9 @@
 
 int main(int argc, char *argv[])
 {
+    MPI_Init(&argc, &argv);
+    MDPAT::InputReader input(argv[1]);
+    input.runFile();
+    MPI_Finalize();
     return 0;
 }
