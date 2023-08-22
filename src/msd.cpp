@@ -78,6 +78,10 @@ namespace MDPAT
         return results;
     }
 
+    void meanSquaredDisplacement(const MDPAT::Trajectory& traj, const std::vector<std::string>& args)
+    {
+    }
+
     void meanSquaredDisplacement2(
         fs::path outfile,
         fs::path directory,

@@ -24,8 +24,8 @@ namespace MDPAT
     };
 
     void meanSquaredDisplacement(
-        Trajectory&,
-        const std::vector<std::string> &
+        MDPAT::Trajectory&,
+        const std::vector<std::string>&
     );
 
     template <typename T>
