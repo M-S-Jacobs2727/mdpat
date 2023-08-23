@@ -7,9 +7,6 @@
 #include <mpi.h>
 #include <omp.h>
 
-#include "permuteDims.hpp"
-#include "readTrajectories.hpp"
-#include "selectFromArray.hpp"
 #include "splitValues.hpp"
 
 namespace fs = std::filesystem;
