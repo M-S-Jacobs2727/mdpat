@@ -3,20 +3,22 @@
 #include <algorithm>
 #include <cstdint>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <regex>
 #include <sstream>
-#include <map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <mpi.h>
 
 #include "bcastContainers.hpp"
 #include "error.hpp"
-#include "msd.hpp"   // add other analysis files as we write them
 #include "stepRange.hpp"
 #include "trajectory.hpp"
+
+#include "msd.hpp"   // add other analysis files as we write them
 
 namespace MDPAT
 {
@@ -26,32 +28,33 @@ namespace MDPAT
         InputReader(const std::string &);
         ~InputReader();
         void runFile();
-        std::vector<std::string> parseLine(const std::string &);
-        void executeCommand(const std::vector<std::string> &);
-
-        typedef void(*CommandPtr)(MDPAT::Trajectory&, const std::vector<std::string> &);
-        std::map<char *, CommandPtr> commandMap {
-            {"msd", &meanSquaredDisplacement},
-        };
-
     private:
-        std::filesystem::path inputFile;
-        std::ifstream input;
-        std::string dumpfileString;
-        StepRange stepRange;
-        MDPAT::Trajectory trajectory;
+        std::vector<std::string> parseLine(const std::string&);
+        void executeCommand(const std::vector<std::string>&);
 
-        double timestep = 0.0;
-        int me;
-
-        void trajCmd();
-        void timestepCmd();
+        void locateTrajFiles();
+        void trajCmd(const std::vector<std::string>&);
         void incorrectArgs(
-            const std::string & command,
+            const std::string& command,
             const int expected_nargs,
             const int found_nargs);
-        StepRange parseRange(const std::string &);
-        StepRange parseRange(const std::string &, const uint64_t);
+        StepRange& parseRange(const std::string&);
+        StepRange& parseRange(const std::string&, const uint64_t);
+
+        typedef void(*CommandPtr)(Trajectory&, const std::vector<std::string> &);
+    private:
+        std::unordered_map<const char*, CommandPtr> m_commandMap;
+        std::filesystem::path m_inputFile;
+        std::filesystem::path m_parentDir;
+        bool m_multipleDumpfiles = false;
+        std::ifstream m_ifs;
+        std::string m_dumpfileString;
+        StepRange m_stepRange;
+        Trajectory m_trajectory;
+        std::filesystem::path m_dumpfilePath;
+        std::vector<std::filesystem::path> m_dumpfilePathsVec;
+
+        int m_me;
     };
 
 }
