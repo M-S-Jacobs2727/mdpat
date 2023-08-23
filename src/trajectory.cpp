@@ -21,6 +21,16 @@ using std::vector;
 
 namespace MDPAT
 {
+Trajectory::Trajectory()
+{
+    initMPI();
+    m_tempfilePath = std::string_view(m_tempfileName);
+}
+
+Trajectory::~Trajectory()
+{
+    std::filesystem::remove(std::filesystem::path(m_tempfileName));
+}
 
 void Trajectory::initMPI()
 {
@@ -64,6 +74,16 @@ const Trajectory::AxisOrder& Trajectory::getAxisOrder() const
     return m_axisOrder;
 }
 
+const std::vector<uint64_t>& Trajectory::getSteps const
+{
+    return m_steps;
+}
+
+const std::vector<uint64_t>& Trajectory::getStepsGlobal const
+{
+    return m_stepsGlobal;
+}
+
 const double & Trajectory::operator[](std::size_t idx) const
 {
     return m_data[idx];
@@ -77,9 +97,17 @@ void Trajectory::read(
     if (m_me == 0 && std::filesystem::is_regular_file(m_tempfilePath))
         std::filesystem::remove(m_tempfilePath);
 
-    // Calculate first frame, num frames from step range
-    m_stepRange = stepRange;
-    const auto [firstFrame, numFrames] = splitValues(m_stepRange.nSteps, m_me, m_nprocs);
+    // Calculate global and local steps from stepRange
+    m_nframes = stepRange.nSteps;
+    m_stepsGlobal.resize(m_nframes);
+    for (size_t i = 0; i < m_stepsGlobal.size(); ++i)
+        m_stepsGlobal[i] = stepRange.initStep + i * stepRange.dumpStep;
+
+    const auto [firstFrame, numFrames] = splitValues(m_stepsGlobal.size(), m_me, m_nprocs);
+
+    m_steps.resize(numFrames);
+    for (size_t i = 0; i < m_steps.size(); ++i)
+        m_steps[i] = stepRange.initStep + (firstFrame + i) * stepRange.dumpStep;
 
     // Assume dumpfile exists and open, start reading, throw if it doesn't
     std::ifstream instream(dumpfile);
@@ -88,37 +116,30 @@ void Trajectory::read(
     
     // Loop through my expected timesteps
     bool headerDone = false;
-    uint64_t firstStep = firstFrame * m_stepRange.dumpStep + m_stepRange.initStep;
-    uint64_t lastStep = firstStep + (numFrames - 1) * m_stepRange.dumpStep;
-    uint64_t step = firstStep;
-    while (step <= lastStep && instream.good())
+    for (const auto step : m_steps)
     {
         uint64_t dumpfileTimestep = getTimestep(instream);
-        if (dumpfileTimestep == step)
-        {
-            if (headerDone)
-            {
-                skipDumpHeader(instream);
-            }
-            else
-            {
-                readDumpHeader(instream);
-                headerDone = true;
-                reserve();
-                m_data.resize(numFrames * m_natoms * m_ncols);
-            }
-            readDumpBody(instream);
-            step += m_stepRange.dumpStep;
-        }
-        else if (dumpfileTimestep < step)
+        while (dumpfileTimestep < step && instream.good())
         {
             skipDumpHeader(instream);
             skipDumpBody(instream);
         }
+
+        if (dumpfileTimestep != step)
+            errorAll(Error::IOERROR, "Specified timestep %ull not found in dump file", step);
+
+        if (headerDone)
+        {
+            skipDumpHeader(instream);
+        }
         else
         {
-            errorAll(Error::IOERROR, "Specified timestep %ul not found in dump file", step);
+            readDumpHeader(instream);
+            headerDone = true;
+            reserve();
+            m_data.resize(numFrames * m_natoms * m_ncols);
         }
+        readDumpBody(instream);
     }
 
     // If all successful, set member vars
@@ -127,9 +148,71 @@ void Trajectory::read(
 
     m_axisOrder = {Trajectory::Axis::FRAMES, Trajectory::Axis::ATOMS, Trajectory::Axis::PROPS};
     m_axisLengths = {numFrames, m_natoms, m_columnLabels.size()};
-    m_axisLengthsGlobal = {m_stepRange.nSteps, m_natoms, m_columnLabels.size()};
+    m_axisLengthsGlobal = {m_stepsGlobal.size(), m_natoms, m_columnLabels.size()};
 
     instream.close();
+}
+
+void Trajectory::read(const std::filesystem::path&)
+{
+    // TODO: Before each read, clear vectors, remove file, etc. in `clean` method
+    // Remove tempfile, if it exists
+    if (m_me == 0 && std::filesystem::is_regular_file(m_tempfilePath))
+        std::filesystem::remove(m_tempfilePath);
+
+    // Assume dumpfile exists and open, start reading, throw if it doesn't
+    std::ifstream instream(dumpfile);
+    if (!instream.good())
+        errorAll(Error::IOERROR, "Could not open file %s", m_dumpfilePath.c_str());
+    
+    // Loop through entire file once and determine the timesteps (no StepRange)
+    if (m_me == 0)
+    {
+        step = getTimestep(instream);
+        if (step == ULLONG_MAX)
+            errorAll(Error::IOERROR, "Unexpected end of file %s", m_dumpfilePath.c_str());
+        
+        m_stepsGlobal.push_back(step);
+        readDumpHeader(instream);
+        skipDumpBody(instream);
+        while (instream.good())
+        {
+            step = getTimestep(instream);
+            m_stepsGlobal.push_back(step);
+            if (step == ULLONG_MAX)
+                break;
+            skipDumpHeader(instream);
+            skipDumpBody(instream);
+        }
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    bcast(m_stepsGlobal, MPI_UINT64_T, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&m_natoms, 1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&m_ncols, 1, MPI_UINT32_T, 0, MPI_COMM_WORLD);
+    MPI_Bcast(m_box.data(), m_box.size(), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    m_nframes = m_stepsGlobal.size();
+    reserve();
+    m_data.resize(numFrames * m_natoms * m_ncols);
+
+    auto [firstFrame, numFrames] = splitValues(m_nframes, m_me, m_nprocs);
+    m_steps.resize(numFrames);
+    for (size_t i = 0; i < numFrames; ++i)
+        m_steps[i] = m_stepsGlobal[i + firstFrame];
+
+    instream.seekg(0);
+    for (size_t i = 0; i < firstFrame; ++i)
+    {
+        skipDumpHeader(instream);
+        skipDumpBody(instream);
+    }
+
+    for (size_t i = 0; i < numFrames; ++i)
+    {
+        skipDumpHeader(instream);
+        readDumpBody(instream, i * m_natoms * m_ncols);
+    }
+    instream.close();
+    MPI_Barrier(MPI_COMM_WORLD);
 }
 
 void Trajectory::swap(double* x, double* y)
@@ -174,7 +257,7 @@ void Trajectory::checkValidAxis(const AxisOrder& axisOrder) const
 
 void Trajectory::reserve()
 {
-    uint64_t max_nSteps = (uint64_t)ceil((double)m_stepRange.nSteps / (double)m_nprocs);
+    uint64_t max_nSteps = (uint64_t)ceil((double)m_stepsGlobal.size() / (double)m_nprocs);
     uint64_t max_nAtoms = m_nprocs * (uint64_t)ceil((double)m_natoms / (double)m_nprocs);
     uint64_t max_nCols = m_nprocs * (uint64_t)ceil((double)m_ncols / (double)m_nprocs);
     m_data.reserve(max_nSteps * max_nAtoms * max_nCols);
@@ -184,6 +267,8 @@ uint64_t Trajectory::getTimestep(std::istream &is) const
 {
     string word;
     is >> word;
+    if (word == "")
+        return ULLONG_MAX;
     if (word != "ITEM:")
         errorAll(Error::SYNTAXERROR, "Syntax error while reading dump file");
     is >> word;
@@ -526,9 +611,9 @@ void Trajectory::permuteDims(const AxisOrder& newAxisOrder)
         if (!m_tempfileExists)
         {
             MDBIN::HeaderInfo info;
-            info.initStep = m_stepRange.initStep;
-            info.endStep = m_stepRange.endStep;
-            info.deltaStep = m_stepRange.dumpStep;
+            info.initStep = m_stepsGlobal.front();
+            info.endStep = m_stepsGlobal.back();
+            info.deltaStep = m_stepsGlobal[1] - m_stepsGlobal[0];
             info.columnLabels = m_columnLabels;
             info.numFrames = m_axisLengthsGlobal[0];
             info.numAtoms = m_axisLengthsGlobal[1];

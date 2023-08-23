@@ -17,17 +17,9 @@ public:
     enum class Axis {NONE = 0, FRAMES = 1, ATOMS = 2, PROPS = 3};
     typedef std::array<Axis, 3> AxisOrder;
     typedef std::array<size_t, 3> Dimensions;
-    typedef std::array<uint32_t, 3> IdxMap;
-    struct TempfileHeaderResults
-    {
-        int startPos = 0;
-        AxisOrder order;
-        Dimensions dims;
-    };
-
 public:
-    Trajectory() { initMPI(); m_tempfilePath = std::string_view(m_tempfileName); }
-    ~Trajectory() { std::filesystem::remove(std::filesystem::path(m_tempfileName)); }
+    Trajectory();
+    ~Trajectory();
 
     void read(const std::filesystem::path&, const MDPAT::StepRange&);
     void read(const std::filesystem::path&);
@@ -41,12 +33,21 @@ public:
     const Dimensions& getAxisLengths() const;
     const Dimensions& getAxisLengthsGlobal() const;
     const AxisOrder& getAxisOrder() const;
+    const std::vector<uint64_t>& getSteps const;
     const double & operator[](std::size_t idx) const;
     
     void permuteDims(const AxisOrder&);
     // void selectColumns(const std::vector<std::string> &);
     void reset();
 
+private:
+    typedef std::array<uint32_t, 3> IdxMap;
+    struct TempfileHeaderResults
+    {
+        int startPos = 0;
+        AxisOrder order;
+        Dimensions dims;
+    };
 private:
     void initMPI();
     void checkValidAxis(const AxisOrder&) const;
@@ -72,7 +73,6 @@ private:
     void writeTempfile() const;
     TempfileHeaderResults& readTempfileHeader(std::istream &instream) const;
     void readTempfile(const AxisOrder&);
-
 private:
     std::vector<double> m_data;  // main data
 
@@ -90,10 +90,12 @@ private:
     // std::vector<std::string> m_originalColumnLabels;
     
     // Dumpfile vars
+    uint64_t m_nframes = 0UL;
     uint64_t m_natoms = 0UL;
     uint32_t m_ncols = 0U;
     std::array<double, 6> m_box = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    MDPAT::StepRange m_stepRange;
+    std::vector<uint64_t> m_stepsGlobal;
+    std::vector<uint64_t> m_steps;
     std::filesystem::path m_dumpfilePath;
     std::vector<std::filesystem::path> m_dumpfilePathsVec;
 
