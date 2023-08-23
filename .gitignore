@@ -1,3 +1,7 @@
 **/build
 .vscode
 Makefile
+.vs
+*.sln
+out
+build

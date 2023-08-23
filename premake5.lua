@@ -4,6 +4,7 @@ workspace "MDPAT"
     configurations { "debug", "release" }
 
 project "MDPAT"
+    architecture "x64"
     kind "ConsoleApp"
     language "C++"
     location "build"
